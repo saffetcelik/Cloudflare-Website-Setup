@@ -63,6 +63,44 @@ debugLog(`Electron: ${process.versions.electron}`);
 debugLog(`Node: ${process.versions.node}`);
 debugLog('═══════════════════════════════════════════════');
 
+// ═══ BUNDLED WRANGLER BİNARY ═══
+// Kullanıcıda Node.js/npx kurulu olmasa bile çalışması için:
+// Electron'un gömülü Node.js runtime'ını ELECTRON_RUN_AS_NODE=1 ile kullanır
+// ve wrangler'ın JS entry point'ini doğrudan çalıştırır.
+function findWranglerScript(): string {
+  const appPath = app.isReady ? app.getAppPath() : __dirname;
+  const candidates = [
+    // Dev: proje kökü
+    path.join(__dirname, '..', 'node_modules', 'wrangler', 'bin', 'wrangler.js'),
+    // Packaged — asar unpacked
+    path.join(appPath + '.unpacked', 'node_modules', 'wrangler', 'bin', 'wrangler.js'),
+    path.join(process.resourcesPath || '', 'app.asar.unpacked', 'node_modules', 'wrangler', 'bin', 'wrangler.js'),
+    // Packaged — normal
+    path.join(appPath, 'node_modules', 'wrangler', 'bin', 'wrangler.js'),
+    path.join(appPath, '..', 'node_modules', 'wrangler', 'bin', 'wrangler.js'),
+    path.join(process.resourcesPath || '', 'app', 'node_modules', 'wrangler', 'bin', 'wrangler.js'),
+  ];
+
+  for (const c of candidates) {
+    if (fs.existsSync(c)) {
+      const resolved = path.resolve(c);
+      debugLog(`[wrangler] Script found: ${resolved}`);
+      return resolved;
+    }
+  }
+
+  debugLog('[wrangler] Bundled wrangler.js not found!');
+  return '';
+}
+
+const WRANGLER_SCRIPT = findWranglerScript();
+// Electron'u Node.js gibi kullanarak wrangler'ı çalıştıran komut
+// ELECTRON_RUN_AS_NODE=1 → Electron binary sade Node.js gibi davranır
+const WRANGLER = WRANGLER_SCRIPT
+  ? `set ELECTRON_RUN_AS_NODE=1&& "${process.execPath}" "${WRANGLER_SCRIPT}"`
+  : 'wrangler';
+debugLog(`[wrangler] Using: ${WRANGLER}`);
+
 // Global window reference
 let mainWindow: BrowserWindow | null = null;
 let serverProcess: ChildProcess | null = null;
@@ -488,7 +526,7 @@ ipcMain.handle('wrangler-login', async () => {
       let attempt = 0;
       const tryWhoami = () => {
         attempt++;
-        exec('npx wrangler whoami', { timeout: 15000 }, (err, out) => {
+        exec(`${WRANGLER} whoami`, { timeout: 15000 }, (err, out) => {
           if (!err && out) {
             resolve(out);
           } else if (attempt < retries) {
@@ -503,11 +541,15 @@ ipcMain.handle('wrangler-login', async () => {
     });
   };
 
+  // Port 8976'yı temizle (wrangler OAuth callback portu)
+  try {
+    const killPort = require('kill-port');
+    await killPort(8976).catch(() => {});
+  } catch (_) {}
+
   return new Promise((resolve, reject) => {
-    // Make sure port 8976 is free before login to prevent EADDRINUSE errors
-    exec('npx -y kill-port 8976', () => {
       // Run wrangler login which opens browser for OAuth
-      const wranglerProcess = exec('npx wrangler login', async (error, stdout, stderr) => {
+      const wranglerProcess = exec(`${WRANGLER} login`, async (error, stdout, stderr) => {
         if (error) {
           console.error(`exec error: ${error}`);
           reject(error.message);
@@ -562,7 +604,6 @@ ipcMain.handle('wrangler-login', async () => {
           }
         });
       }
-    });
   });
 });
 
@@ -659,11 +700,11 @@ ipcMain.handle('deploy-site', async (event, options) => {
         console.log('[deploy] HTTP download successful');
       } catch (httpErr: any) {
         console.warn(`[deploy] HTTP download failed: ${httpErr.message}, trying wrangler CLI...`);
-        await execPromise(`npx wrangler r2 object get cloudflare-pro-templates/${templateKey} --remote --file="${zipPath}"`);
+        await execPromise(`${WRANGLER} r2 object get cloudflare-pro-templates/${templateKey} --remote --file="${zipPath}"`);
       }
     } else {
       console.log(`[deploy] Downloading via wrangler CLI: cloudflare-pro-templates/${templateKey}`);
-      await execPromise(`npx wrangler r2 object get cloudflare-pro-templates/${templateKey} --remote --file="${zipPath}"`);
+      await execPromise(`${WRANGLER} r2 object get cloudflare-pro-templates/${templateKey} --remote --file="${zipPath}"`);
     }
 
     checkCancelled();
@@ -745,7 +786,7 @@ ipcMain.handle('deploy-site', async (event, options) => {
 
     // Step 4: D1 veritabanı
     sendProgress(4, 'D1 veritabanı oluşturuluyor...');
-    const d1Output = await execPromise(`npx wrangler d1 create ${projectName}-db`, { cwd: extractPath });
+    const d1Output = await execPromise(`${WRANGLER} d1 create ${projectName}-db`, { cwd: extractPath });
 
     const dbIdMatch = d1Output.match(/database_id = "([^"]+)"/);
     const dbId = dbIdMatch ? dbIdMatch[1] : '';
@@ -762,7 +803,7 @@ ipcMain.handle('deploy-site', async (event, options) => {
     sendProgress(5, 'Veritabanı tabloları oluşturuluyor...');
     if (fs.existsSync(path.join(extractPath, 'schema.sql'))) {
       try {
-        await execPromise(`npx wrangler d1 execute ${projectName}-db --file=schema.sql --remote`, { cwd: extractPath });
+        await execPromise(`${WRANGLER} d1 execute ${projectName}-db --file=schema.sql --remote`, { cwd: extractPath });
         console.log('[deploy] schema.sql executed');
       } catch (e: any) {
         console.warn('[deploy] Schema warning:', e.message);
@@ -770,7 +811,7 @@ ipcMain.handle('deploy-site', async (event, options) => {
     }
     if (fs.existsSync(path.join(extractPath, 'seed.sql'))) {
       try {
-        await execPromise(`npx wrangler d1 execute ${projectName}-db --file=seed.sql --remote`, { cwd: extractPath });
+        await execPromise(`${WRANGLER} d1 execute ${projectName}-db --file=seed.sql --remote`, { cwd: extractPath });
         console.log('[deploy] seed.sql executed');
       } catch (e: any) {
         console.warn('[deploy] Seed warning:', e.message);
@@ -781,7 +822,7 @@ ipcMain.handle('deploy-site', async (event, options) => {
     const vectorizeIndexName = `${projectName}-rag-index`;
     console.log(`[deploy] Creating Vectorize index: ${vectorizeIndexName}`);
     try {
-      await execPromise(`npx wrangler vectorize create ${vectorizeIndexName} --dimensions=1024 --metric=cosine`, { cwd: extractPath });
+      await execPromise(`${WRANGLER} vectorize create ${vectorizeIndexName} --dimensions=1024 --metric=cosine`, { cwd: extractPath });
       console.log(`[deploy] Vectorize index created: ${vectorizeIndexName}`);
     } catch (e: any) {
       if (e.message.includes('already exists') || e.message.includes('Index with name')) {
@@ -796,14 +837,14 @@ ipcMain.handle('deploy-site', async (event, options) => {
     // Step 6: Deploy
     sendProgress(6, 'Cloudflare Pages\'e deploy ediliyor...');
     try {
-      await execPromise(`npx wrangler pages project create ${projectName} --production-branch=main`, { cwd: extractPath });
+      await execPromise(`${WRANGLER} pages project create ${projectName} --production-branch=main`, { cwd: extractPath });
     } catch (e: any) {
       if (!e.message.includes('already exists')) {
         console.warn('[deploy] Project creation warning:', e.message);
       }
     }
 
-    await execPromise(`npx wrangler pages deploy dist --project-name=${projectName}`, { cwd: extractPath });
+    await execPromise(`${WRANGLER} pages deploy dist --project-name=${projectName}`, { cwd: extractPath });
     console.log(`[deploy] Deployed successfully: https://${projectName}.pages.dev`);
 
     // Cleanup
@@ -824,7 +865,7 @@ ipcMain.handle('deploy-site', async (event, options) => {
 ipcMain.handle('get-wrangler-token', async () => {
   return new Promise((resolve, reject) => {
     // Try to get account info from wrangler whoami
-    exec('npx wrangler whoami --json', (error, stdout, stderr) => {
+    exec(`${WRANGLER} whoami --json`, (error, stdout, stderr) => {
       if (error) {
         reject('Could not get wrangler info: ' + error.message);
         return;
