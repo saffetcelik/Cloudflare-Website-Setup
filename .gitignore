@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+build/
+dist/
+dist-server/
+dist-electron/
+coverage/
+
+# Electron compiled main
+electron/main.mjs
+
+# Installer output (built by CI)
+installer/output/
+
+# Environment variables
+.env*
+!.env.example
+
+# Wrangler
+.wrangler/
+temp-deploy/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

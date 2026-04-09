@@ -1,0 +1,73 @@
+name: Build & Release Installer
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-installer:
+    name: Build Setup EXE & Create Release
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+
+      - name: Build installer with Inno Setup
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\setup.iss
+        shell: pwsh
+
+      - name: Verify installer was created
+        run: |
+          if (!(Test-Path "installer\output\CloudflareProOtomasyon-Setup.exe")) {
+            Write-Error "Installer EXE not found!"
+            exit 1
+          }
+          $size = (Get-Item "installer\output\CloudflareProOtomasyon-Setup.exe").Length
+          Write-Host "Installer built successfully! Size: $([math]::Round($size / 1KB)) KB"
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $ver = $tag -replace '^v', ''
+          echo "VERSION=$ver" >> $env:GITHUB_OUTPUT
+          echo "TAG=$tag" >> $env:GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "Cloudflare Site Kurulum Otomasyonu ${{ github.ref_name }}"
+          body: |
+            ## 🚀 Cloudflare Site Kurulum Otomasyonu ${{ steps.version.outputs.TAG }}
+
+            ### 📥 İndirme
+            Aşağıdaki **CloudflareProOtomasyon-Setup.exe** dosyasını indirip çalıştırın.
+            Kurulum sihirbazı, uygulamayı otomatik olarak sunucudan indirecek ve kuracaktır.
+
+            ### ℹ️ Gereksinimler
+            - Windows 10/11 (64-bit)
+            - İnternet bağlantısı
+            - Cloudflare hesabı
+
+            ### 📋 Değişiklikler
+            Bu sürümdeki değişiklikler için aşağıdaki otomatik oluşturulan notlara bakın.
+
+            ---
+            **Geliştirici:** [Saffet Çelik](https://saffetcelik.com.tr)
+          draft: false
+          prerelease: false
+          files: |
+            installer/output/CloudflareProOtomasyon-Setup.exe
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

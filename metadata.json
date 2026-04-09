@@ -1,0 +1,5 @@
+{
+  "name": "Cloudflare Automation Pro",
+  "description": "Professional automation tool for managing Cloudflare Pages and D1 databases via API integration.",
+  "requestFramePermissions": []
+}
