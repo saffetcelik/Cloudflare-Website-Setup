@@ -26,22 +26,45 @@ const execAsync = promisify(exec);
 // Kullanıcıda Node.js/npx kurulu olmasa bile çalışması için:
 // Electron modunda: ELECTRON_RUN_AS_NODE=1 ile Electron'un gömülü Node.js'ini kullanır
 // Dev modunda: node_modules/.bin/wrangler.cmd kullanır
+//
+// ÖNEMLİ: asar içindeki dosyalar ELECTRON_RUN_AS_NODE=1 child process'te okunamaz!
+// Önce .unpacked yolları kontrol edilir, asar'da bulunursa unpacked'a yönlendirilir.
 function getWranglerBin(): string {
   const isElectron = !!(process.versions as any).electron;
+  const exeDir = path.dirname(process.execPath);
+  const resPath = (process as any).resourcesPath || '';
 
   // Wrangler JS entry point'ini bul
+  // ÖNCELİK: unpacked yollar (ELECTRON_RUN_AS_NODE child process asar okuyamaz)
   const searchRoots = [
+    // Unpacked paths first
+    resPath ? path.join(resPath, 'app.asar.unpacked') : '',
+    path.join(exeDir, 'resources', 'app.asar.unpacked'),
+    resPath ? path.join(resPath, 'app') : '',
+    // Dev/fallback paths
     process.cwd(),
     __dirname,
     path.join(__dirname, '..'),
-    (process as any).resourcesPath ? path.join((process as any).resourcesPath, 'app.asar.unpacked') : '',
-    (process as any).resourcesPath ? path.join((process as any).resourcesPath, 'app') : '',
   ].filter(Boolean);
 
   for (const root of searchRoots) {
     const jsPath = path.join(root, 'node_modules', 'wrangler', 'bin', 'wrangler.js');
     if (fs.existsSync(jsPath)) {
-      const resolved = path.resolve(jsPath);
+      let resolved = path.resolve(jsPath);
+
+      // asar içindeki dosyalar ELECTRON_RUN_AS_NODE=1 child process'te okunamaz
+      // .unpacked versiyonuna yönlendir
+      if (resolved.includes('app.asar') && !resolved.includes('.unpacked')) {
+        const unpackedPath = resolved.replace(/app\.asar([\\\/])/, 'app.asar.unpacked$1');
+        if (fs.existsSync(unpackedPath)) {
+          console.log(`[wrangler] asar→unpacked: ${unpackedPath}`);
+          resolved = unpackedPath;
+        } else {
+          console.warn(`[wrangler] SKIP asar path (unpacked yok): ${resolved}`);
+          continue;
+        }
+      }
+
       if (isElectron) {
         // Electron exe'yi Node.js gibi kullan
         console.log(`[wrangler] Using Electron+ELECTRON_RUN_AS_NODE: ${resolved}`);
@@ -59,6 +82,16 @@ function getWranglerBin(): string {
         return `node "${resolved}"`;
       }
     }
+  }
+
+  // Electron modunda wrangler bulunamadıysa açık hata mesajı
+  // ASLA bare 'wrangler' veya 'npx wrangler' kullanma — kullanıcıda yüklü olmayabilir
+  if (isElectron) {
+    console.error('[wrangler] KRİTİK: Bundled wrangler hiçbir yolda bulunamadı!');
+    console.error(`[wrangler] searchRoots: ${searchRoots.join(', ')}`);
+    return process.platform === 'win32'
+      ? 'echo [HATA] Wrangler bulunamadi - uygulamayi yeniden yukleyin && exit /b 1'
+      : 'echo "[HATA] Wrangler bulunamadi" && exit 1';
   }
 
   console.warn('[wrangler] Bundled wrangler not found, falling back to global');
@@ -189,7 +222,7 @@ async function getWranglerTokenAsync(): Promise<string | null> {
   // Önce sync token var mı kontrol et - wrangler config dosyası yoksa boşa komut çalıştırma
   const syncToken = getWranglerToken(true);
   if (!syncToken) {
-    // Wrangler config dosyası yok veya token yok - npx komutu çalıştırmaya gerek yok
+    // Wrangler config dosyası yok veya token yok - wrangler komutu çalıştırmaya gerek yok
     return null;
   }
 

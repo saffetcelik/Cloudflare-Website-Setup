@@ -67,39 +67,71 @@ debugLog('═══════════════════════�
 // Kullanıcıda Node.js/npx kurulu olmasa bile çalışması için:
 // Electron'un gömülü Node.js runtime'ını ELECTRON_RUN_AS_NODE=1 ile kullanır
 // ve wrangler'ın JS entry point'ini doğrudan çalıştırır.
+//
+// ÖNEMLİ: asar içindeki dosyalar ELECTRON_RUN_AS_NODE=1 child process'te okunamaz!
+// Bu yüzden önce .unpacked yolları kontrol edilir, asar'da bulunursa unpacked'a yönlendirilir.
 function findWranglerScript(): string {
   const appPath = app.isReady ? app.getAppPath() : __dirname;
+  const exeDir = path.dirname(process.execPath);
+  const resPath = (process as any).resourcesPath || '';
+
+  debugLog(`[wrangler-find] appPath=${appPath}, exeDir=${exeDir}, resPath=${resPath}, __dirname=${__dirname}`);
+
   const candidates = [
-    // Dev: proje kökü
+    // ÖNCELİK 1: Unpacked yollar (ELECTRON_RUN_AS_NODE child process bunları okuyabilir)
+    resPath ? path.join(resPath, 'app.asar.unpacked', 'node_modules', 'wrangler', 'bin', 'wrangler.js') : '',
+    path.join(exeDir, 'resources', 'app.asar.unpacked', 'node_modules', 'wrangler', 'bin', 'wrangler.js'),
+    app.isReady ? path.join(app.getAppPath() + '.unpacked', 'node_modules', 'wrangler', 'bin', 'wrangler.js') : '',
+    // ÖNCELİK 2: Dev mode yolları
     path.join(__dirname, '..', 'node_modules', 'wrangler', 'bin', 'wrangler.js'),
-    // Packaged — asar unpacked
-    path.join(appPath + '.unpacked', 'node_modules', 'wrangler', 'bin', 'wrangler.js'),
-    path.join(process.resourcesPath || '', 'app.asar.unpacked', 'node_modules', 'wrangler', 'bin', 'wrangler.js'),
-    // Packaged — normal
+    // ÖNCELİK 3: Asar içi yollar (bulunursa unpacked versiyonuna yönlendirilir)
     path.join(appPath, 'node_modules', 'wrangler', 'bin', 'wrangler.js'),
     path.join(appPath, '..', 'node_modules', 'wrangler', 'bin', 'wrangler.js'),
-    path.join(process.resourcesPath || '', 'app', 'node_modules', 'wrangler', 'bin', 'wrangler.js'),
-  ];
+    resPath ? path.join(resPath, 'app', 'node_modules', 'wrangler', 'bin', 'wrangler.js') : '',
+  ].filter(Boolean);
 
   for (const c of candidates) {
-    if (fs.existsSync(c)) {
-      const resolved = path.resolve(c);
-      debugLog(`[wrangler] Script found: ${resolved}`);
+    const exists = fs.existsSync(c);
+    debugLog(`[wrangler-find] ${exists ? '✓' : '✗'} ${c}`);
+    if (exists) {
+      let resolved = path.resolve(c);
+      // asar içindeki dosyalar ELECTRON_RUN_AS_NODE=1 child process'te okunamaz
+      // .unpacked versiyonuna yönlendir
+      if (resolved.includes('app.asar') && !resolved.includes('.unpacked')) {
+        const unpackedPath = resolved.replace(/app\.asar([\\\/])/, 'app.asar.unpacked$1');
+        if (fs.existsSync(unpackedPath)) {
+          debugLog(`[wrangler-find] asar→unpacked: ${unpackedPath}`);
+          return unpackedPath;
+        }
+        debugLog(`[wrangler-find] SKIP asar path (unpacked yok): ${resolved}`);
+        continue; // asar içindeki exec edilemez, sonraki adayı dene
+      }
+      debugLog(`[wrangler-find] SELECTED: ${resolved}`);
       return resolved;
     }
   }
 
-  debugLog('[wrangler] Bundled wrangler.js not found!');
+  debugLog('[wrangler-find] WARNING: Bundled wrangler.js hiçbir yolda bulunamadı!');
   return '';
 }
 
-const WRANGLER_SCRIPT = findWranglerScript();
+function buildWranglerCommand(scriptPath: string): string {
+  if (!scriptPath) {
+    // ASLA bare 'wrangler' veya 'npx wrangler' kullanma — kullanıcıda yüklü olmayabilir
+    return process.platform === 'win32'
+      ? 'echo [HATA] Wrangler bulunamadi - uygulamayi yeniden yukleyin && exit /b 1'
+      : 'echo "[HATA] Wrangler bulunamadi" && exit 1';
+  }
+  return process.platform === 'win32'
+    ? `set ELECTRON_RUN_AS_NODE=1&& "${process.execPath}" "${scriptPath}"`
+    : `ELECTRON_RUN_AS_NODE=1 "${process.execPath}" "${scriptPath}"`;
+}
+
+let WRANGLER_SCRIPT = findWranglerScript();
 // Electron'u Node.js gibi kullanarak wrangler'ı çalıştıran komut
 // ELECTRON_RUN_AS_NODE=1 → Electron binary sade Node.js gibi davranır
-const WRANGLER = WRANGLER_SCRIPT
-  ? `set ELECTRON_RUN_AS_NODE=1&& "${process.execPath}" "${WRANGLER_SCRIPT}"`
-  : 'wrangler';
-debugLog(`[wrangler] Using: ${WRANGLER}`);
+let WRANGLER = buildWranglerCommand(WRANGLER_SCRIPT);
+debugLog(`[wrangler] Initial: ${WRANGLER_SCRIPT ? WRANGLER : 'NOT FOUND (will retry after app ready)'}`);
 
 // Global window reference
 let mainWindow: BrowserWindow | null = null;
@@ -400,6 +432,20 @@ function createWindow() {
 
 app.whenReady().then(async () => {
   debugLog('[app.whenReady] Uygulama hazır');
+
+  // Wrangler yolu app ready öncesi bulunamadıysa tekrar dene
+  // (app.getAppPath() ancak app ready sonrası güvenilir)
+  if (!WRANGLER_SCRIPT) {
+    debugLog('[wrangler] App ready sonrası tekrar aranıyor...');
+    WRANGLER_SCRIPT = findWranglerScript();
+    WRANGLER = buildWranglerCommand(WRANGLER_SCRIPT);
+    if (WRANGLER_SCRIPT) {
+      debugLog(`[wrangler] Tekrar çözümlendi: ${WRANGLER}`);
+    } else {
+      debugLog('[wrangler] KRİTİK: App ready sonrası da bulunamadı!');
+    }
+  }
+
   debugLog(`[app.whenReady] app.getAppPath(): ${app.getAppPath()}`);
   debugLog(`[app.whenReady] app.getPath('userData'): ${app.getPath('userData')}`);
   debugLog(`[app.whenReady] app.getPath('exe'): ${app.getPath('exe')}`);
