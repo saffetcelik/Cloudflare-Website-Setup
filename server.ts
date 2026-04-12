@@ -67,11 +67,13 @@ function getWranglerBin(): string {
       }
 
       if (isElectron) {
-        // Electron exe'yi Node.js gibi kullan
-        // NOT: ELECTRON_RUN_AS_NODE=1 artık komut string'inde DEĞİL,
-        // exec() options.env ile geçiriliyor (WRANGLER_ENV)
-        console.log(`[wrangler] Using Electron as Node.js: ${resolved}`);
-        return `"${process.execPath}" "${resolved}"`;
+        // ELECTRON_RUN_AS_NODE=1 olsa bile process.versions.electron set kalır.
+        // Wrangler/yargs bunu kontrol edip argv slice index'ini 0 yapar (1 yerine)
+        // → hideBin(argv) yanlış keser → "Unknown arguments: cli.js, login" hatası
+        // Çözüm: -e ile process.versions.electron silip cli.js'yi require ile yükle
+        const patchCode = 'delete process.versions.electron;require(process.argv[1])';
+        console.log(`[wrangler] Using Electron as Node.js (patched): ${resolved}`);
+        return `"${process.execPath}" -e "${patchCode}" "${resolved}"`;
       } else {
         // Dev mode: normal node ile çalıştır
         const cmdPath = path.join(root, 'node_modules', '.bin', process.platform === 'win32' ? 'wrangler.cmd' : 'wrangler');

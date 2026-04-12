@@ -123,9 +123,12 @@ function buildWranglerCommand(scriptPath: string): string {
       ? 'echo [HATA] Wrangler bulunamadi - uygulamayi yeniden yukleyin && exit /b 1'
       : 'echo "[HATA] Wrangler bulunamadi" && exit 1';
   }
-  // NOT: ELECTRON_RUN_AS_NODE=1 artık komut string'inde DEĞİL,
-  // exec() options.env ile geçiriliyor (WRANGLER_ENV)
-  return `"${process.execPath}" "${scriptPath}"`;
+  // ELECTRON_RUN_AS_NODE=1 olsa bile process.versions.electron set kalır.
+  // Wrangler/yargs bunu kontrol edip argv slice index'ini 0 yapar (1 yerine)
+  // → hideBin(argv) yanlış keser → "Unknown arguments: cli.js, login" hatası
+  // Çözüm: -e ile process.versions.electron silip cli.js'yi require ile yükle
+  const patchCode = 'delete process.versions.electron;require(process.argv[1])';
+  return `"${process.execPath}" -e "${patchCode}" "${scriptPath}"`;
 }
 
 let WRANGLER_SCRIPT = findWranglerScript();
