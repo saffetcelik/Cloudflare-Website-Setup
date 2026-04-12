@@ -79,15 +79,16 @@ function findWranglerScript(): string {
 
   const candidates = [
     // ÖNCELİK 1: Unpacked yollar (ELECTRON_RUN_AS_NODE child process bunları okuyabilir)
-    resPath ? path.join(resPath, 'app.asar.unpacked', 'node_modules', 'wrangler', 'bin', 'wrangler.js') : '',
-    path.join(exeDir, 'resources', 'app.asar.unpacked', 'node_modules', 'wrangler', 'bin', 'wrangler.js'),
-    app.isReady ? path.join(app.getAppPath() + '.unpacked', 'node_modules', 'wrangler', 'bin', 'wrangler.js') : '',
+    // wrangler-dist/cli.js kullanılıyor — bin/wrangler.js iç spawn yapar, ELECTRON_RUN_AS_NODE ile uyumsuz
+    resPath ? path.join(resPath, 'app.asar.unpacked', 'node_modules', 'wrangler', 'wrangler-dist', 'cli.js') : '',
+    path.join(exeDir, 'resources', 'app.asar.unpacked', 'node_modules', 'wrangler', 'wrangler-dist', 'cli.js'),
+    app.isReady ? path.join(app.getAppPath() + '.unpacked', 'node_modules', 'wrangler', 'wrangler-dist', 'cli.js') : '',
     // ÖNCELİK 2: Dev mode yolları
-    path.join(__dirname, '..', 'node_modules', 'wrangler', 'bin', 'wrangler.js'),
+    path.join(__dirname, '..', 'node_modules', 'wrangler', 'wrangler-dist', 'cli.js'),
     // ÖNCELİK 3: Asar içi yollar (bulunursa unpacked versiyonuna yönlendirilir)
-    path.join(appPath, 'node_modules', 'wrangler', 'bin', 'wrangler.js'),
-    path.join(appPath, '..', 'node_modules', 'wrangler', 'bin', 'wrangler.js'),
-    resPath ? path.join(resPath, 'app', 'node_modules', 'wrangler', 'bin', 'wrangler.js') : '',
+    path.join(appPath, 'node_modules', 'wrangler', 'wrangler-dist', 'cli.js'),
+    path.join(appPath, '..', 'node_modules', 'wrangler', 'wrangler-dist', 'cli.js'),
+    resPath ? path.join(resPath, 'app', 'node_modules', 'wrangler', 'wrangler-dist', 'cli.js') : '',
   ].filter(Boolean);
 
   for (const c of candidates) {

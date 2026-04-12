@@ -48,7 +48,8 @@ function getWranglerBin(): string {
   ].filter(Boolean);
 
   for (const root of searchRoots) {
-    const jsPath = path.join(root, 'node_modules', 'wrangler', 'bin', 'wrangler.js');
+    // wrangler-dist/cli.js kullan — bin/wrangler.js iç spawn yapar, ELECTRON_RUN_AS_NODE ile uyumsuz
+    const jsPath = path.join(root, 'node_modules', 'wrangler', 'wrangler-dist', 'cli.js');
     if (fs.existsSync(jsPath)) {
       let resolved = path.resolve(jsPath);
 
