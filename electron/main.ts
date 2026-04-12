@@ -122,15 +122,18 @@ function buildWranglerCommand(scriptPath: string): string {
       ? 'echo [HATA] Wrangler bulunamadi - uygulamayi yeniden yukleyin && exit /b 1'
       : 'echo "[HATA] Wrangler bulunamadi" && exit 1';
   }
-  return process.platform === 'win32'
-    ? `set ELECTRON_RUN_AS_NODE=1&& "${process.execPath}" "${scriptPath}"`
-    : `ELECTRON_RUN_AS_NODE=1 "${process.execPath}" "${scriptPath}"`;
+  // NOT: ELECTRON_RUN_AS_NODE=1 artık komut string'inde DEĞİL,
+  // exec() options.env ile geçiriliyor (WRANGLER_ENV)
+  return `"${process.execPath}" "${scriptPath}"`;
 }
 
 let WRANGLER_SCRIPT = findWranglerScript();
 // Electron'u Node.js gibi kullanarak wrangler'ı çalıştıran komut
 // ELECTRON_RUN_AS_NODE=1 → Electron binary sade Node.js gibi davranır
 let WRANGLER = buildWranglerCommand(WRANGLER_SCRIPT);
+// ELECTRON_RUN_AS_NODE=1 ortam değişkeni — exec() options.env olarak geçirilir
+// cmd.exe parsing sorunlarını önlemek için komut string'ine gömülmez
+const WRANGLER_ENV = { ...process.env, ELECTRON_RUN_AS_NODE: '1' };
 debugLog(`[wrangler] Initial: ${WRANGLER_SCRIPT ? WRANGLER : 'NOT FOUND (will retry after app ready)'}`);
 
 // Global window reference
@@ -572,7 +575,7 @@ ipcMain.handle('wrangler-login', async () => {
       let attempt = 0;
       const tryWhoami = () => {
         attempt++;
-        exec(`${WRANGLER} whoami`, { timeout: 15000 }, (err, out) => {
+        exec(`${WRANGLER} whoami`, { timeout: 15000, env: WRANGLER_ENV }, (err, out) => {
           if (!err && out) {
             resolve(out);
           } else if (attempt < retries) {
@@ -595,7 +598,7 @@ ipcMain.handle('wrangler-login', async () => {
 
   return new Promise((resolve, reject) => {
       // Run wrangler login which opens browser for OAuth
-      const wranglerProcess = exec(`${WRANGLER} login`, async (error, stdout, stderr) => {
+      const wranglerProcess = exec(`${WRANGLER} login`, { env: WRANGLER_ENV }, async (error, stdout, stderr) => {
         if (error) {
           console.error(`exec error: ${error}`);
           reject(error.message);
@@ -718,7 +721,7 @@ ipcMain.handle('deploy-site', async (event, options) => {
   const execPromise = (cmd: string, opts: any = {}): Promise<string> => {
     return new Promise((resolve, reject) => {
       if (deployAborted) return reject(new Error('Kurulum iptal edildi.'));
-      const proc = exec(cmd, { encoding: 'utf8', timeout: 120000, ...opts }, (error, stdout, stderr) => {
+      const proc = exec(cmd, { encoding: 'utf8', timeout: 120000, env: WRANGLER_ENV, ...opts }, (error, stdout, stderr) => {
         activeDeployProcesses = activeDeployProcesses.filter(p => p !== proc);
         if (deployAborted) return reject(new Error('Kurulum iptal edildi.'));
         if (error) return reject(new Error(error.message));
@@ -911,7 +914,7 @@ ipcMain.handle('deploy-site', async (event, options) => {
 ipcMain.handle('get-wrangler-token', async () => {
   return new Promise((resolve, reject) => {
     // Try to get account info from wrangler whoami
-    exec(`${WRANGLER} whoami --json`, (error, stdout, stderr) => {
+    exec(`${WRANGLER} whoami --json`, { env: WRANGLER_ENV }, (error, stdout, stderr) => {
       if (error) {
         reject('Could not get wrangler info: ' + error.message);
         return;

@@ -67,10 +67,10 @@ function getWranglerBin(): string {
 
       if (isElectron) {
         // Electron exe'yi Node.js gibi kullan
-        console.log(`[wrangler] Using Electron+ELECTRON_RUN_AS_NODE: ${resolved}`);
-        return process.platform === 'win32'
-          ? `set ELECTRON_RUN_AS_NODE=1&& "${process.execPath}" "${resolved}"`
-          : `ELECTRON_RUN_AS_NODE=1 "${process.execPath}" "${resolved}"`;
+        // NOT: ELECTRON_RUN_AS_NODE=1 artık komut string'inde DEĞİL,
+        // exec() options.env ile geçiriliyor (WRANGLER_ENV)
+        console.log(`[wrangler] Using Electron as Node.js: ${resolved}`);
+        return `"${process.execPath}" "${resolved}"`;
       } else {
         // Dev mode: normal node ile çalıştır
         const cmdPath = path.join(root, 'node_modules', '.bin', process.platform === 'win32' ? 'wrangler.cmd' : 'wrangler');
@@ -99,6 +99,14 @@ function getWranglerBin(): string {
 }
 
 const WRANGLER = getWranglerBin();
+// ELECTRON_RUN_AS_NODE=1 ortam değişkeni — exec() options.env olarak geçirilir
+// cmd.exe parsing sorunlarını önlemek için komut string'ine gömülmez
+const WRANGLER_ENV = { ...process.env, ELECTRON_RUN_AS_NODE: '1' };
+// Wrangler komutları için exec wrapper — ELECTRON_RUN_AS_NODE env otomatik eklenir
+const wranglerExecAsync = async (cmd: string, opts: any = {}): Promise<{stdout: string, stderr: string}> => {
+  const result = await execAsync(cmd, { encoding: 'utf8', env: WRANGLER_ENV, ...opts });
+  return { stdout: String(result.stdout), stderr: String(result.stderr) };
+};
 
 // Stored API token (persisted to .cloudflare-token file)
 const TOKEN_FILE = path.join(os.homedir(), '.cloudflare-dns-token');
@@ -228,7 +236,7 @@ async function getWranglerTokenAsync(): Promise<string | null> {
 
   try {
     // `wrangler auth token --json` automatically refreshes expired OAuth tokens
-    const { stdout } = await execAsync(`${WRANGLER} auth token --json`, {
+    const { stdout } = await wranglerExecAsync(`${WRANGLER} auth token --json`, {
       encoding: 'utf8',
       timeout: 15000
     });
@@ -592,7 +600,7 @@ async function startServer() {
       // 1. Try proper wrangler logout (revokes OAuth token on Cloudflare side)
       let wranglerLogoutSuccess = false;
       try {
-        await execAsync(`${WRANGLER} logout`, { encoding: 'utf8', timeout: 15000 });
+        await wranglerExecAsync(`${WRANGLER} logout`, { encoding: 'utf8', timeout: 15000 });
         wranglerLogoutSuccess = true;
         console.log('Wrangler logout successful (token revoked)');
       } catch (e: any) {
@@ -778,7 +786,7 @@ async function startServer() {
     // Use wrangler CLI
     if (!token || token === 'wrangler') {
       try {
-        await execAsync(`${WRANGLER} pages project create ${name} --production-branch=${production_branch || 'main'}`, {
+        await wranglerExecAsync(`${WRANGLER} pages project create ${name} --production-branch=${production_branch || 'main'}`, {
           encoding: 'utf8'
         });
         res.json({ id: name, name: name, subdomain: `${name}.pages.dev`, created_on: new Date().toISOString() });
@@ -1181,7 +1189,7 @@ async function startServer() {
           return res.json(cached);
         }
 
-        const { stdout } = await execAsync(`${WRANGLER} d1 list --json`, {
+        const { stdout } = await wranglerExecAsync(`${WRANGLER} d1 list --json`, {
           encoding: 'utf8',
           timeout: 10000 // 10 second timeout
         });
@@ -1212,7 +1220,7 @@ async function startServer() {
     // Use wrangler CLI
     if (!token || token === 'wrangler') {
       try {
-        const { stdout } = await execAsync(`${WRANGLER} d1 create ${name} --json`, {
+        const { stdout } = await wranglerExecAsync(`${WRANGLER} d1 create ${name} --json`, {
           encoding: 'utf8'
         });
         const db = JSON.parse(stdout);
@@ -1269,7 +1277,7 @@ async function startServer() {
     try {
       const tempPath = path.join(process.cwd(), `version_manifest_${Date.now()}.json`);
       console.log('Fetching template manifest via wrangler CLI...');
-      await execAsync(`${WRANGLER} r2 object get cloudflare-pro-templates/templates/hukukai_version_manifest.json --remote --file="${tempPath}"`, {
+      await wranglerExecAsync(`${WRANGLER} r2 object get cloudflare-pro-templates/templates/hukukai_version_manifest.json --remote --file="${tempPath}"`, {
         encoding: 'utf8',
         cwd: process.cwd(),
         timeout: 20000
@@ -1324,7 +1332,7 @@ async function startServer() {
     // Use wrangler CLI
     if (!token || token === 'wrangler') {
       try {
-        await execAsync(`${WRANGLER} pages project delete ${projectName} --yes`, {
+        await wranglerExecAsync(`${WRANGLER} pages project delete ${projectName} --yes`, {
           encoding: 'utf8',
           cwd: process.cwd(),
           timeout: 15000
@@ -1361,7 +1369,7 @@ async function startServer() {
     // Use wrangler CLI - accepts both name and UUID
     if (!token || token === 'wrangler') {
       try {
-        const { stdout, stderr } = await execAsync(`${WRANGLER} d1 delete "${dbIdentifier}" -y`, {
+        const { stdout, stderr } = await wranglerExecAsync(`${WRANGLER} d1 delete "${dbIdentifier}" -y`, {
           encoding: 'utf8',
           cwd: process.cwd(),
           timeout: 30000
@@ -1396,9 +1404,9 @@ async function startServer() {
     if (!dbName) return res.status(400).json({ error: 'db parametresi gerekli' });
 
     try {
-      const { stdout } = await execAsync(
+      const { stdout } = await wranglerExecAsync(
         `${WRANGLER} d1 execute ${dbName} --command="SELECT id, email, name FROM admins LIMIT 5" --json --remote`,
-        { encoding: 'utf8', timeout: 20000 }
+        { timeout: 20000 }
       );
       const parsed = JSON.parse(stdout);
       // wrangler d1 execute --json returns an array of result sets
@@ -1431,9 +1439,9 @@ async function startServer() {
       // Escape single quotes in hash for SQL
       const escapedHash = passwordHash.replace(/'/g, "''");
 
-      const { stdout } = await execAsync(
+      const { stdout } = await wranglerExecAsync(
         `${WRANGLER} d1 execute ${dbName} --command="UPDATE admins SET password_hash = '${escapedHash}', updated_at = CURRENT_TIMESTAMP WHERE id = ${Number(adminId)}" --remote`,
-        { encoding: 'utf8', timeout: 20000 }
+        { timeout: 20000 }
       );
 
       console.log(`[D1] Password reset for admin ID ${adminId} in ${dbName}`);
@@ -1487,14 +1495,14 @@ async function startServer() {
           console.log('[deploy] HTTP download successful');
         } catch (httpErr: any) {
           console.warn(`[deploy] HTTP download failed: ${httpErr.message}, trying wrangler CLI...`);
-          await execAsync(`${WRANGLER} r2 object get cloudflare-pro-templates/${templateKey} --remote --file="${zipPath}"`, {
+          await wranglerExecAsync(`${WRANGLER} r2 object get cloudflare-pro-templates/${templateKey} --remote --file="${zipPath}"`, {
             encoding: 'utf8',
             cwd: process.cwd()
           });
         }
       } else {
         console.log(`[deploy] Downloading via wrangler CLI: cloudflare-pro-templates/${templateKey}`);
-        await execAsync(`${WRANGLER} r2 object get cloudflare-pro-templates/${templateKey} --remote --file="${zipPath}"`, {
+        await wranglerExecAsync(`${WRANGLER} r2 object get cloudflare-pro-templates/${templateKey} --remote --file="${zipPath}"`, {
           encoding: 'utf8',
           cwd: process.cwd()
         });
@@ -1525,7 +1533,7 @@ async function startServer() {
       fs.writeFileSync(wranglerPath, wranglerConfig);
       
       sendProgress(4, 'D1 veritabanı oluşturuluyor...');
-      const { stdout: d1Output } = await execAsync(`${WRANGLER} d1 create ${projectName}-db`, { 
+      const { stdout: d1Output } = await wranglerExecAsync(`${WRANGLER} d1 create ${projectName}-db`, { 
         encoding: 'utf8',
         cwd: extractPath 
       });
@@ -1544,14 +1552,14 @@ async function startServer() {
       
       sendProgress(5, 'Veritabanı tabloları oluşturuluyor...');
       if (fs.existsSync(path.join(extractPath, 'schema.sql'))) {
-        await execAsync(`${WRANGLER} d1 execute ${projectName}-db --file=schema.sql --remote`, { 
+        await wranglerExecAsync(`${WRANGLER} d1 execute ${projectName}-db --file=schema.sql --remote`, { 
           encoding: 'utf8',
           cwd: extractPath 
         });
       }
       // seed.sql varsa çalıştır (başlangıç verileri)
       if (fs.existsSync(path.join(extractPath, 'seed.sql'))) {
-        await execAsync(`${WRANGLER} d1 execute ${projectName}-db --file=seed.sql --remote`, { 
+        await wranglerExecAsync(`${WRANGLER} d1 execute ${projectName}-db --file=seed.sql --remote`, { 
           encoding: 'utf8',
           cwd: extractPath 
         });
@@ -1561,7 +1569,7 @@ async function startServer() {
       sendProgress(6, 'Vectorize index oluşturuluyor...');
       const vectorizeIndexName = `${projectName}-rag-index`;
       try {
-        await execAsync(`${WRANGLER} vectorize create ${vectorizeIndexName} --dimensions=1024 --metric=cosine`, {
+        await wranglerExecAsync(`${WRANGLER} vectorize create ${vectorizeIndexName} --dimensions=1024 --metric=cosine`, {
           encoding: 'utf8',
           cwd: extractPath
         });
@@ -1573,13 +1581,13 @@ async function startServer() {
 
       sendProgress(7, 'Cloudflare Pages\'e deploy ediliyor...');
       try {
-        await execAsync(`${WRANGLER} pages project create ${projectName} --production-branch=main`, { encoding: 'utf8', cwd: extractPath });
+        await wranglerExecAsync(`${WRANGLER} pages project create ${projectName} --production-branch=main`, { encoding: 'utf8', cwd: extractPath });
       } catch (e: any) {
         if (!e.message?.includes('already exists')) {
           console.warn('[deploy] Project creation warning:', e.message);
         }
       }
-      await execAsync(`${WRANGLER} pages deploy dist --project-name=${projectName}`, { 
+      await wranglerExecAsync(`${WRANGLER} pages deploy dist --project-name=${projectName}`, { 
         encoding: 'utf8',
         cwd: extractPath 
       });
