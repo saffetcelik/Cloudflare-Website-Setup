@@ -67,13 +67,24 @@ function getWranglerBin(): string {
       }
 
       if (isElectron) {
-        // ELECTRON_RUN_AS_NODE=1 olsa bile process.versions.electron set kalır.
-        // Wrangler/yargs bunu kontrol edip argv slice index'ini 0 yapar (1 yerine)
-        // → hideBin(argv) yanlış keser → "Unknown arguments: cli.js, login" hatası
-        // Çözüm: -e ile process.versions.electron silip cli.js'yi require ile yükle
-        const patchCode = 'delete process.versions.electron;require(process.argv[1])';
+        // Yargs, Electron uygulamalarında process.argv slice index'ini 0 yapar (1 yerine)
+        // --require ile yüklenen patch, process.versions.electron'u silerek düzeltir
+        // cli.js MAIN MODULE olarak çalışır → CLI giriş kodu çalışır
+        const patchPath = path.join(path.dirname(resolved), '_electron_yargs_patch.cjs');
+        if (!fs.existsSync(patchPath)) {
+          try {
+            fs.writeFileSync(patchPath, 'delete process.versions.electron;\n', 'utf8');
+          } catch (e) {
+            const tmpPatch = path.join(os.tmpdir(), '_electron_yargs_patch.cjs');
+            if (!fs.existsSync(tmpPatch)) {
+              fs.writeFileSync(tmpPatch, 'delete process.versions.electron;\n', 'utf8');
+            }
+            console.log(`[wrangler] Using Electron as Node.js (patched, temp): ${resolved}`);
+            return `"${process.execPath}" --require "${tmpPatch}" "${resolved}"`;
+          }
+        }
         console.log(`[wrangler] Using Electron as Node.js (patched): ${resolved}`);
-        return `"${process.execPath}" -e "${patchCode}" "${resolved}"`;
+        return `"${process.execPath}" --require "${patchPath}" "${resolved}"`;
       } else {
         // Dev mode: normal node ile çalıştır
         const cmdPath = path.join(root, 'node_modules', '.bin', process.platform === 'win32' ? 'wrangler.cmd' : 'wrangler');

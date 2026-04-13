@@ -116,6 +116,29 @@ function findWranglerScript(): string {
   return '';
 }
 
+function ensureElectronPatch(scriptDir: string): string {
+  // Yargs, Electron uygulamalarında process.argv slice index'ini 0 yapar (1 yerine)
+  // Bu yüzden hideBin(argv) yanlış keser → "Unknown arguments" hatası
+  // --require ile yüklenen bu patch, process.versions.electron'u silerek
+  // yargs'ın doğru slice index (1) kullanmasını sağlar
+  const patchPath = path.join(scriptDir, '_electron_yargs_patch.cjs');
+  if (!fs.existsSync(patchPath)) {
+    try {
+      fs.writeFileSync(patchPath, 'delete process.versions.electron;\n', 'utf8');
+      debugLog(`[wrangler] Patch created: ${patchPath}`);
+    } catch (e) {
+      // Unpacked dizine yazılamazsa temp dizini kullan
+      const tmpPatch = path.join(require('os').tmpdir(), '_electron_yargs_patch.cjs');
+      if (!fs.existsSync(tmpPatch)) {
+        fs.writeFileSync(tmpPatch, 'delete process.versions.electron;\n', 'utf8');
+      }
+      debugLog(`[wrangler] Patch created (temp): ${tmpPatch}`);
+      return tmpPatch;
+    }
+  }
+  return patchPath;
+}
+
 function buildWranglerCommand(scriptPath: string): string {
   if (!scriptPath) {
     // ASLA bare 'wrangler' veya 'npx wrangler' kullanma — kullanıcıda yüklü olmayabilir
@@ -123,12 +146,10 @@ function buildWranglerCommand(scriptPath: string): string {
       ? 'echo [HATA] Wrangler bulunamadi - uygulamayi yeniden yukleyin && exit /b 1'
       : 'echo "[HATA] Wrangler bulunamadi" && exit 1';
   }
-  // ELECTRON_RUN_AS_NODE=1 olsa bile process.versions.electron set kalır.
-  // Wrangler/yargs bunu kontrol edip argv slice index'ini 0 yapar (1 yerine)
-  // → hideBin(argv) yanlış keser → "Unknown arguments: cli.js, login" hatası
-  // Çözüm: -e ile process.versions.electron silip cli.js'yi require ile yükle
-  const patchCode = 'delete process.versions.electron;require(process.argv[1])';
-  return `"${process.execPath}" -e "${patchCode}" "${scriptPath}"`;
+  // --require ile patch script önce çalışır, sonra cli.js MAIN MODULE olarak çalışır
+  // -e require() yaklaşımı çalışmaz çünkü cli.js main module olmaz → CLI kodu çalışmaz
+  const patchPath = ensureElectronPatch(path.dirname(scriptPath));
+  return `"${process.execPath}" --require "${patchPath}" "${scriptPath}"`;
 }
 
 let WRANGLER_SCRIPT = findWranglerScript();
