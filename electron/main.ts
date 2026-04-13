@@ -616,17 +616,55 @@ ipcMain.handle('wrangler-login', async () => {
   };
 
   // Port 8976'yı temizle (wrangler OAuth callback portu)
-  try {
-    const killPort = require('kill-port');
-    await killPort(8976).catch(() => {});
-  } catch (_) {}
+  // kill-port yerine native yöntem: netstat + taskkill (her yerde çalışır)
+  const killPort8976 = (): Promise<void> => {
+    return new Promise((resolveKill) => {
+      exec('netstat -ano | findstr :8976 | findstr LISTENING', { env: process.env }, (err, out) => {
+        if (!err && out) {
+          const lines = out.trim().split('\n');
+          const pids = new Set<string>();
+          for (const line of lines) {
+            const parts = line.trim().split(/\s+/);
+            const pid = parts[parts.length - 1];
+            if (pid && pid !== '0' && /^\d+$/.test(pid)) pids.add(pid);
+          }
+          if (pids.size > 0) {
+            const killCmd = [...pids].map(p => `taskkill /F /PID ${p}`).join(' & ');
+            debugLog(`[wrangler-login] Killing PIDs on port 8976: ${[...pids].join(', ')}`);
+            exec(killCmd, { env: process.env }, () => {
+              setTimeout(resolveKill, 500); // kill sonrası portun serbest kalması için bekle
+            });
+          } else {
+            resolveKill();
+          }
+        } else {
+          resolveKill();
+        }
+      });
+    });
+  };
+  await killPort8976();
 
-  return new Promise((resolve, reject) => {
-      // Run wrangler login which opens browser for OAuth
+  // Wrangler login — EADDRINUSE durumunda retry mekanizması
+  const attemptLogin = (retryOnPortError = true): Promise<any> => {
+    return new Promise((resolve, reject) => {
       const wranglerProcess = exec(`${WRANGLER} login`, { env: WRANGLER_ENV }, async (error, stdout, stderr) => {
         if (error) {
+          const errorMsg = error.message || stderr || '';
+          // EADDRINUSE hatası — port temizle ve tekrar dene
+          if (retryOnPortError && errorMsg.includes('EADDRINUSE')) {
+            debugLog('[wrangler-login] EADDRINUSE detected, killing port and retrying...');
+            await killPort8976();
+            try {
+              const result = await attemptLogin(false); // sadece 1 retry
+              resolve(result);
+            } catch (retryErr: any) {
+              reject(retryErr);
+            }
+            return;
+          }
           console.error(`exec error: ${error}`);
-          reject(error.message);
+          reject(new Error(errorMsg));
           return;
         }
         
@@ -678,7 +716,10 @@ ipcMain.handle('wrangler-login', async () => {
           }
         });
       }
-  });
+    });
+  };
+
+  return attemptLogin();
 });
 
 // Template download base URL — R2 public access veya Worker URL
