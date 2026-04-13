@@ -21,7 +21,11 @@
     "icon": "installer/cloudflare-pages.ico",
     "win": {
       "target": "dir",
-      "icon": "installer/cloudflare-pages.ico"
+      "icon": "installer/cloudflare-pages.ico",
+      "publisherName": "Saffet Celik",
+      "requestedExecutionLevel": "asInvoker",
+      "signAndEditExecutable": true,
+      "verifyUpdateCodeSignature": false
     },
     "mac": {
       "category": "public.app-category.developer-tools"

@@ -1,4 +1,4 @@
-name: Build & Release Installer
+name: Build, Sign & Release Installer
 
 on:
   push:
@@ -7,12 +7,14 @@ on:
 
 permissions:
   contents: write
+  id-token: write          # SignPath OIDC token için gerekli
+  actions: read
 
 jobs:
-  build-installer:
-    name: Build Setup EXE & Create Release
+  # ═══ JOB 1: Installer'ı derle ═══
+  build:
+    name: Build Installer
     runs-on: windows-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -20,54 +22,125 @@ jobs:
       - name: Install Inno Setup
         run: choco install innosetup -y --no-progress
 
-      - name: Build installer with Inno Setup
+      - name: Update setup.iss version from tag
+        shell: pwsh
+        run: |
+          $ver = "${{ github.ref_name }}" -replace '^v', ''
+          $iss = Get-Content installer\setup.iss -Raw
+          $iss = $iss -replace '#define\s+AppVersion\s+"[^"]*"', "#define AppVersion `"$ver`""
+          Set-Content installer\setup.iss $iss -NoNewline
+          Write-Host "setup.iss AppVersion → $ver"
+
+      - name: Build installer
         run: |
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\setup.iss
         shell: pwsh
 
-      - name: Verify installer was created
+      - name: Verify installer
+        shell: pwsh
         run: |
-          if (!(Test-Path "installer\output\CloudflareProOtomasyon-Setup.exe")) {
-            Write-Error "Installer EXE not found!"
-            exit 1
-          }
-          $size = (Get-Item "installer\output\CloudflareProOtomasyon-Setup.exe").Length
-          Write-Host "Installer built successfully! Size: $([math]::Round($size / 1KB)) KB"
+          $exe = "installer\output\CloudflareProOtomasyon-Setup.exe"
+          if (!(Test-Path $exe)) { Write-Error "EXE not found!"; exit 1 }
+          $size = [math]::Round((Get-Item $exe).Length / 1KB)
+          Write-Host "✅ Setup.exe built ($size KB)"
 
-      - name: Extract version from tag
+      - name: Upload unsigned artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-unsigned
+          path: installer/output/CloudflareProOtomasyon-Setup.exe
+
+  # ═══ JOB 2: SignPath ile imzala (OSS onayı sonrası aktif olur) ═══
+  sign:
+    name: Sign with SignPath
+    needs: build
+    runs-on: ubuntu-latest
+    # SignPath yapılandırılmadıysa bu job atlanır
+    if: vars.SIGNPATH_ORGANIZATION_ID != ''
+    steps:
+      - name: Download unsigned artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: installer-unsigned
+          path: ./unsigned
+
+      - name: Submit signing request
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: cloudflare-pro-otomasyon
+          signing-policy-slug: release-signing
+          artifact-configuration-slug: installer
+          github-artifact-id: installer-unsigned
+          wait-for-completion: true
+          output-artifact-directory: ./signed
+
+      - name: Upload signed artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-signed
+          path: ./signed/CloudflareProOtomasyon-Setup.exe
+
+  # ═══ JOB 3: GitHub Release oluştur ═══
+  release:
+    name: Create Release
+    needs: [build, sign]
+    # sign job atlanırsa da çalışsın (imzasız release)
+    if: always() && needs.build.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download signed artifact
+        if: needs.sign.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: installer-signed
+          path: ./release
+
+      - name: Download unsigned artifact (fallback)
+        if: needs.sign.result != 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: installer-unsigned
+          path: ./release
+
+      - name: Extract version
         id: version
         run: |
-          $tag = "${{ github.ref_name }}"
-          $ver = $tag -replace '^v', ''
-          echo "VERSION=$ver" >> $env:GITHUB_OUTPUT
-          echo "TAG=$tag" >> $env:GITHUB_OUTPUT
+          TAG="${{ github.ref_name }}"
+          VER="${TAG#v}"
+          echo "VERSION=$VER" >> $GITHUB_OUTPUT
+          echo "TAG=$TAG" >> $GITHUB_OUTPUT
+          if [ "${{ needs.sign.result }}" = "success" ]; then
+            echo "SIGNED=✅ Dijital imzalı" >> $GITHUB_OUTPUT
+          else
+            echo "SIGNED=⚠️ İmzasız build" >> $GITHUB_OUTPUT
+          fi
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          name: "Cloudflare Site Kurulum Otomasyonu ${{ github.ref_name }}"
+          name: "Cloudflare Site Kurulum Otomasyonu ${{ steps.version.outputs.TAG }}"
           body: |
-            ## 🚀 Cloudflare Site Kurulum Otomasyonu ${{ steps.version.outputs.TAG }}
+            ## Cloudflare Site Kurulum Otomasyonu ${{ steps.version.outputs.TAG }}
 
-            ### 📥 İndirme
+            ${{ steps.version.outputs.SIGNED }}
+
+            ### İndirme
             Aşağıdaki **CloudflareProOtomasyon-Setup.exe** dosyasını indirip çalıştırın.
             Kurulum sihirbazı, uygulamayı otomatik olarak sunucudan indirecek ve kuracaktır.
 
-            ### ℹ️ Gereksinimler
+            ### Gereksinimler
             - Windows 10/11 (64-bit)
             - İnternet bağlantısı
             - Cloudflare hesabı
-
-            ### 📋 Değişiklikler
-            Bu sürümdeki değişiklikler için aşağıdaki otomatik oluşturulan notlara bakın.
 
             ---
             **Geliştirici:** [Saffet Çelik](https://saffetcelik.com.tr)
           draft: false
           prerelease: false
-          files: |
-            installer/output/CloudflareProOtomasyon-Setup.exe
+          files: release/CloudflareProOtomasyon-Setup.exe
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
