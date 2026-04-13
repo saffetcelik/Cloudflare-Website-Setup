@@ -1,0 +1,664 @@
+{
+  "templates": [
+    {
+      "id": "hukukai-template",
+      "name": "HukukAI - Avukatlık & Hukuk Bürosu",
+      "description": "Avukat/Hukuk bürosu için tam özellikli web sitesi. Admin paneli, blog, emsal karar, AI chatbot, SEO optimizasyonu.",
+      "category": "law",
+      "sector": "hukuk",
+      "features": [
+        "Admin Paneli",
+        "Blog",
+        "Avukat Yönetimi",
+        "Emsal Karar",
+        "İletişim Formu",
+        "AI Chatbot",
+        "SEO",
+        "JWT Auth"
+      ],
+      "schema_variant": "default",
+      "version": "1.0.34",
+      "r2_synced": true,
+      "r2_last_upload": "2026-04-08T20:35:35.852Z",
+      "r2_version": "1.0.34",
+      "r2_zip_name": "hukukai_template_v1.0.34.zip",
+      "r2_key": "templates/hukukai_template_v1.0.34.zip",
+      "local_zip_exists": true,
+      "local_zip_path": "C:\\Users\\Admin_QOHDGQ\\Desktop\\ai\\otomasyonsite-main\\hukukai_template_v1.0.34.zip",
+      "local_zip_name": "hukukai_template_v1.0.34.zip",
+      "local_zip_size": "3273.42 KB",
+      "created_at": "2026-04-02T14:29:07.268Z",
+      "updated_at": "2026-04-08T20:35:35.852Z",
+      "build_status": "built",
+      "build_date": "2026-04-08T20:35:00.891Z",
+      "version_history": [
+        {
+          "version": "1.0.32",
+          "date": "2026-04-08T19:27:24.733Z",
+          "zip_name": "hukukai_template_v1.0.32.zip",
+          "size": "3272.33 KB",
+          "changelog": ""
+        },
+        {
+          "version": "1.0.33",
+          "date": "2026-04-08T19:43:52.071Z",
+          "zip_name": "hukukai_template_v1.0.33.zip",
+          "size": "3272.26 KB",
+          "changelog": ""
+        },
+        {
+          "version": "1.0.34",
+          "date": "2026-04-08T20:35:00.891Z",
+          "zip_name": "hukukai_template_v1.0.34.zip",
+          "size": "3273.42 KB",
+          "changelog": ""
+        }
+      ],
+      "notes": "İlk sürüm - R2'de mevcut (otomasyonsite-template.zip olarak)",
+      "changelog": ""
+    }
+  ],
+  "deployments": [],
+  "activity_log": [
+    {
+      "id": "1776067373717",
+      "action": "cfpro_release",
+      "details": "CloudflareProOtomasyon v1.0.33 tam yayınlama (209.66 MB, SHA: 70fb95cd437d50d3...)",
+      "timestamp": "2026-04-13T08:02:53.717Z"
+    },
+    {
+      "id": "1776037527393",
+      "action": "cfpro_release",
+      "details": "CloudflareProOtomasyon v1.0.31 tam yayınlama (209.66 MB, SHA: 5c953de1247cb83c...)",
+      "timestamp": "2026-04-12T23:45:27.393Z"
+    },
+    {
+      "id": "1776035111325",
+      "action": "cfpro_release",
+      "details": "CloudflareProOtomasyon v1.0.30 tam yayınlama (209.66 MB, SHA: eaafc4a9022afa8b...)",
+      "timestamp": "2026-04-12T23:05:11.325Z"
+    },
+    {
+      "id": "1776030250121",
+      "action": "cfpro_release",
+      "details": "CloudflareProOtomasyon v1.0.27 tam yayınlama (209.66 MB, SHA: a85d35571c12e653...)",
+      "timestamp": "2026-04-12T21:44:10.121Z"
+    },
+    {
+      "id": "1775680535853",
+      "action": "r2_upload",
+      "details": "R2'ye yüklendi (stable): hukukai_template_v1.0.34.zip (v1.0.34) → templates/hukukai_template_v1.0.34.zip, templates/hukukai_template_latest.zip, templates/hukukai_version_manifest.json | Silinen: v1.0.31",
+      "timestamp": "2026-04-08T20:35:35.853Z"
+    },
+    {
+      "id": "1775680500893",
+      "action": "template_built",
+      "details": "Template build edildi: HukukAI - Avukatlık & Hukuk Bürosu v1.0.34 → hukukai_template_v1.0.34.zip (3273.42 KB)",
+      "timestamp": "2026-04-08T20:35:00.893Z"
+    },
+    {
+      "id": "1775680282003",
+      "action": "dev_test",
+      "details": "Dev test sitesi deploy edildi: dev-test-hukuk565 v1.0.33 → https://6495137b.dev-test-hukuk565.pages.dev",
+      "timestamp": "2026-04-08T20:31:22.003Z"
+    },
+    {
+      "id": "1775678023828",
+      "action": "dev_test",
+      "details": "Dev test sitesi deploy edildi: dev-test-hukukjhkhjh v1.0.33 → https://aed91873.dev-test-hukukjhkhjh.pages.dev",
+      "timestamp": "2026-04-08T19:53:43.828Z"
+    },
+    {
+      "id": "1775677468400",
+      "action": "r2_upload",
+      "details": "R2'ye yüklendi (stable): hukukai_template_v1.0.33.zip (v1.0.33) → templates/hukukai_template_v1.0.33.zip, templates/hukukai_template_latest.zip, templates/hukukai_version_manifest.json | Silinen: v1.0.30",
+      "timestamp": "2026-04-08T19:44:28.400Z"
+    },
+    {
+      "id": "1775677432073",
+      "action": "template_built",
+      "details": "Template build edildi: HukukAI - Avukatlık & Hukuk Bürosu v1.0.33 → hukukai_template_v1.0.33.zip (3272.26 KB)",
+      "timestamp": "2026-04-08T19:43:52.073Z"
+    },
+    {
+      "id": "1775676474067",
+      "action": "r2_upload",
+      "details": "R2'ye yüklendi (stable): hukukai_template_v1.0.32.zip (v1.0.32) → templates/hukukai_template_v1.0.32.zip, templates/hukukai_template_latest.zip, templates/hukukai_version_manifest.json | Silinen: v1.0.29",
+      "timestamp": "2026-04-08T19:27:54.067Z"
+    },
+    {
+      "id": "1775676444734",
+      "action": "template_built",
+      "details": "Template build edildi: HukukAI - Avukatlık & Hukuk Bürosu v1.0.32 → hukukai_template_v1.0.32.zip (3272.33 KB)",
+      "timestamp": "2026-04-08T19:27:24.734Z"
+    },
+    {
+      "id": "1775675418753",
+      "action": "dev_test",
+      "details": "Dev test sitesi deploy edildi: dev-test-hukuktr656 v1.0.31 → https://ccede77e.dev-test-hukuktr656.pages.dev",
+      "timestamp": "2026-04-08T19:10:18.753Z"
+    },
+    {
+      "id": "1775674380242",
+      "action": "r2_upload",
+      "details": "R2'ye yüklendi (stable): hukukai_template_v1.0.31.zip (v1.0.31) → templates/hukukai_template_v1.0.31.zip, templates/hukukai_template_latest.zip, templates/hukukai_version_manifest.json | Silinen: v1.0.28",
+      "timestamp": "2026-04-08T18:53:00.242Z"
+    },
+    {
+      "id": "1775674351531",
+      "action": "template_built",
+      "details": "Template build edildi: HukukAI - Avukatlık & Hukuk Bürosu v1.0.31 → hukukai_template_v1.0.31.zip (3272.24 KB)",
+      "timestamp": "2026-04-08T18:52:31.531Z"
+    },
+    {
+      "id": "1775672324979",
+      "action": "dev_test",
+      "details": "Dev test sitesi deploy edildi: dev-test-hukuk2334234 v1.0.30 → https://90cb095d.dev-test-hukuk2334234.pages.dev",
+      "timestamp": "2026-04-08T18:18:44.979Z"
+    },
+    {
+      "id": "1775669484584",
+      "action": "dev_test",
+      "details": "Dev test sitesi deploy edildi: dev-test-hukuk2352 v1.0.30 → https://72d22337.dev-test-hukuk2352.pages.dev",
+      "timestamp": "2026-04-08T17:31:24.584Z"
+    },
+    {
+      "id": "1775667837995",
+      "action": "dev_test",
+      "details": "Dev test sitesi deploy edildi: dev-test-hukuk6666 v1.0.30 → https://b2ed9d59.dev-test-hukuk6666.pages.dev",
+      "timestamp": "2026-04-08T17:03:57.995Z"
+    },
+    {
+      "id": "1775663879123",
+      "action": "dev_test",
+      "details": "Dev test sitesi deploy edildi: dev-test-hukuk66 v1.0.30 → https://ac6443a5.dev-test-hukuk66.pages.dev",
+      "timestamp": "2026-04-08T15:57:59.123Z"
+    },
+    {
+      "id": "1775656817402",
+      "action": "cfpro_release",
+      "details": "CloudflareProOtomasyon v1.0.22 tam yayınlama (154.49 MB, SHA: 73b08f22ed063044...)",
+      "timestamp": "2026-04-08T14:00:17.402Z"
+    },
+    {
+      "id": "1775651168263",
+      "action": "cfpro_release",
+      "details": "CloudflareProOtomasyon v1.0.21 tam yayınlama (154.49 MB, SHA: 721ef376f0a3089c...)",
+      "timestamp": "2026-04-08T12:26:08.263Z"
+    },
+    {
+      "id": "1775648071655",
+      "action": "cfpro_release",
+      "details": "CloudflareProOtomasyon v1.0.20 tam yayınlama (154.49 MB, SHA: 6309d9c7db405eb5...)",
+      "timestamp": "2026-04-08T11:34:31.655Z"
+    },
+    {
+      "id": "1775643452243",
+      "action": "cfpro_release",
+      "details": "CloudflareProOtomasyon v1.0.19 tam yayınlama (154.49 MB, SHA: 9d99c5ba35f07742...)",
+      "timestamp": "2026-04-08T10:17:32.243Z"
+    },
+    {
+      "id": "1775605024754",
+      "action": "cfpro_release",
+      "details": "CloudflareProOtomasyon v1.0.18 tam yayınlama (154.49 MB, SHA: 3f324b458b7c14fe...)",
+      "timestamp": "2026-04-07T23:37:04.754Z"
+    },
+    {
+      "id": "1775604762358",
+      "action": "cfpro_release",
+      "details": "CloudflareProOtomasyon v1.0.17 tam yayınlama (154.49 MB, SHA: 001b7eb84f5bb8d2...)",
+      "timestamp": "2026-04-07T23:32:42.358Z"
+    },
+    {
+      "id": "1775604397050",
+      "action": "cfpro_release",
+      "details": "CloudflareProOtomasyon v1.0.16 tam yayınlama (154.49 MB, SHA: 58281b2fbe5fad7c...)",
+      "timestamp": "2026-04-07T23:26:37.050Z"
+    },
+    {
+      "id": "1775602736621",
+      "action": "cfpro_release",
+      "details": "CloudflareProOtomasyon v1.0.15 tam yayınlama (154.49 MB, SHA: 4fe45ad341d7627b...)",
+      "timestamp": "2026-04-07T22:58:56.621Z"
+    },
+    {
+      "id": "1775601740014",
+      "action": "cfpro_release",
+      "details": "CloudflareProOtomasyon v1.0.14 tam yayınlama (154.49 MB, SHA: 6d13c462c1f25539...)",
+      "timestamp": "2026-04-07T22:42:20.014Z"
+    },
+    {
+      "id": "1775600756433",
+      "action": "cfpro_release",
+      "details": "CloudflareProOtomasyon v1.0.13 tam yayınlama (154.48 MB, SHA: 0edd0b1feaeb4f47...)",
+      "timestamp": "2026-04-07T22:25:56.433Z"
+    },
+    {
+      "id": "1775600040814",
+      "action": "cfpro_release",
+      "details": "CloudflareProOtomasyon v1.0.12 tam yayınlama (154.48 MB, SHA: 478e5af0cc63d2d5...)",
+      "timestamp": "2026-04-07T22:14:00.814Z"
+    },
+    {
+      "id": "1775599352075",
+      "action": "cfpro_release",
+      "details": "CloudflareProOtomasyon v1.0.11 tam yayınlama (154.47 MB, SHA: 72d0c3b8e981e8b2...)",
+      "timestamp": "2026-04-07T22:02:32.075Z"
+    },
+    {
+      "id": "1775598377355",
+      "action": "cfpro_release",
+      "details": "CloudflareProOtomasyon v1.0.10 tam yayınlama (91.22 MB, SHA: 0d0e2723d2a04ffd...)",
+      "timestamp": "2026-04-07T21:46:17.355Z"
+    },
+    {
+      "id": "1775595849790",
+      "action": "cfpro_release",
+      "details": "CloudflareProOtomasyon v1.0.8 tam yayınlama (94.8 MB, SHA: 92b204d204dcb5ec...)",
+      "timestamp": "2026-04-07T21:04:09.790Z"
+    },
+    {
+      "id": "1775594878935",
+      "action": "cfpro_release",
+      "details": "CloudflareProOtomasyon v1.0.7 tam yayınlama (94.81 MB, SHA: 5ca4b84805988cbd...)",
+      "timestamp": "2026-04-07T20:47:58.935Z"
+    },
+    {
+      "id": "1775593102102",
+      "action": "cfpro_release",
+      "details": "CloudflareProOtomasyon v1.0.6 tam yayınlama (94.81 MB, SHA: c1c05c6d6de9039d...)",
+      "timestamp": "2026-04-07T20:18:22.102Z"
+    },
+    {
+      "id": "1775591033029",
+      "action": "cfpro_release",
+      "details": "CloudflareProOtomasyon v1.0.5 yayınlandı (94.8 MB, SHA: 1593145ecb822d9f...)",
+      "timestamp": "2026-04-07T19:43:53.029Z"
+    },
+    {
+      "id": "1775580185499",
+      "action": "cfpro_release",
+      "details": "CloudflareProOtomasyon v1.0.4 yayınlandı (94.78 MB, SHA: a3865702a24cdf49...)",
+      "timestamp": "2026-04-07T16:43:05.499Z"
+    },
+    {
+      "id": "1775579086865",
+      "action": "cfpro_release",
+      "details": "CloudflareProOtomasyon v1.0.3 yayınlandı (94.78 MB, SHA: db7308ddc2c464a8...)",
+      "timestamp": "2026-04-07T16:24:46.865Z"
+    },
+    {
+      "id": "1775559717621",
+      "action": "cfpro_release",
+      "details": "CloudflareProOtomasyon v1.0.2 yayınlandı (94.6 MB, SHA: 2f36ddf01b875eb2...)",
+      "timestamp": "2026-04-07T11:01:57.621Z"
+    },
+    {
+      "id": "1775552489339",
+      "action": "otosetupweb_release",
+      "details": "OtoSetupWeb v1.0.1 yayınlandı (94.6 MB, SHA: 02e710e6ac4587d4...)",
+      "timestamp": "2026-04-07T09:01:29.339Z"
+    },
+    {
+      "id": "1775519512979",
+      "action": "r2_upload",
+      "details": "R2'ye yüklendi (stable): hukukai_template_v1.0.30.zip (v1.0.30) → templates/hukukai_template_v1.0.30.zip, templates/hukukai_template_latest.zip, templates/hukukai_version_manifest.json | Silinen: v1.0.27",
+      "timestamp": "2026-04-06T23:51:52.979Z"
+    },
+    {
+      "id": "1775519485942",
+      "action": "template_built",
+      "details": "Template build edildi: HukukAI - Avukatlık & Hukuk Bürosu v1.0.30 → hukukai_template_v1.0.30.zip (268.90 KB)",
+      "timestamp": "2026-04-06T23:51:25.942Z"
+    },
+    {
+      "id": "1775516206201",
+      "action": "r2_upload",
+      "details": "R2'ye yüklendi (stable): hukukai_template_v1.0.29.zip (v1.0.29) → templates/hukukai_template_v1.0.29.zip, templates/hukukai_template_latest.zip, templates/hukukai_version_manifest.json | Silinen: v1.0.26",
+      "timestamp": "2026-04-06T22:56:46.201Z"
+    },
+    {
+      "id": "1775516173071",
+      "action": "template_built",
+      "details": "Template build edildi: HukukAI - Avukatlık & Hukuk Bürosu v1.0.29 → hukukai_template_v1.0.29.zip (268.45 KB)",
+      "timestamp": "2026-04-06T22:56:13.071Z"
+    },
+    {
+      "id": "1775509927836",
+      "action": "r2_upload",
+      "details": "R2'ye yüklendi (stable): hukukai_template_v1.0.28.zip (v1.0.28) → templates/hukukai_template_v1.0.28.zip, templates/hukukai_template_latest.zip, templates/hukukai_version_manifest.json | Silinen: v1.0.25",
+      "timestamp": "2026-04-06T21:12:07.836Z"
+    },
+    {
+      "id": "1775509892005",
+      "action": "template_built",
+      "details": "Template build edildi: HukukAI - Avukatlık & Hukuk Bürosu v1.0.28 → hukukai_template_v1.0.28.zip (264.36 KB)",
+      "timestamp": "2026-04-06T21:11:32.005Z"
+    },
+    {
+      "id": "1775507993080",
+      "action": "r2_upload",
+      "details": "R2'ye yüklendi (stable): hukukai_template_v1.0.27.zip (v1.0.27) → templates/hukukai_template_v1.0.27.zip, templates/hukukai_template_latest.zip, templates/hukukai_version_manifest.json | Silinen: v1.0.24",
+      "timestamp": "2026-04-06T20:39:53.080Z"
+    },
+    {
+      "id": "1775507946321",
+      "action": "template_built",
+      "details": "Template build edildi: HukukAI - Avukatlık & Hukuk Bürosu v1.0.27 → hukukai_template_v1.0.27.zip (266.07 KB)",
+      "timestamp": "2026-04-06T20:39:06.321Z"
+    },
+    {
+      "id": "1775503355453",
+      "action": "r2_upload",
+      "details": "R2'ye yüklendi (stable): hukukai_template_v1.0.26.zip (v1.0.26) → templates/hukukai_template_v1.0.26.zip, templates/hukukai_template_latest.zip, templates/hukukai_version_manifest.json | Silinen: v1.0.23",
+      "timestamp": "2026-04-06T19:22:35.453Z"
+    },
+    {
+      "id": "1775503319529",
+      "action": "template_built",
+      "details": "Template build edildi: HukukAI - Avukatlık & Hukuk Bürosu v1.0.26 → hukukai_template_v1.0.26.zip (265.44 KB)",
+      "timestamp": "2026-04-06T19:21:59.529Z"
+    },
+    {
+      "id": "1775493134467",
+      "action": "r2_upload",
+      "details": "R2'ye yüklendi (stable): hukukai_template_v1.0.25.zip (v1.0.25) → templates/hukukai_template_v1.0.25.zip, templates/hukukai_template_latest.zip, templates/hukukai_version_manifest.json | Silinen: v1.0.22",
+      "timestamp": "2026-04-06T16:32:14.467Z"
+    },
+    {
+      "id": "1775493110359",
+      "action": "template_built",
+      "details": "Template build edildi: HukukAI - Avukatlık & Hukuk Bürosu v1.0.25 → hukukai_template_v1.0.25.zip (260.34 KB)",
+      "timestamp": "2026-04-06T16:31:50.359Z"
+    },
+    {
+      "id": "1775406176904",
+      "action": "update_service",
+      "details": "Dev → Stable yükseltildi: hukuk v1.0.24",
+      "timestamp": "2026-04-05T16:22:56.904Z"
+    },
+    {
+      "id": "1775256130839",
+      "action": "dev_test",
+      "details": "Dev test sitesi deploy edildi: dev-test-hukukyyyy v1.0.24 → https://e92515d5.dev-test-hukukyyyy.pages.dev",
+      "timestamp": "2026-04-03T22:42:10.839Z"
+    },
+    {
+      "id": "1775235356530",
+      "action": "r2_upload",
+      "details": "R2'ye yüklendi (dev): hukukai_template_v1.0.24.zip (v1.0.24) → templates/hukukai_template_v1.0.24.zip, templates/hukukai_template_latest.zip, templates/hukukai_version_manifest_dev.json | Silinen: v1.0.21",
+      "timestamp": "2026-04-03T16:55:56.530Z"
+    },
+    {
+      "id": "1775235325106",
+      "action": "template_built",
+      "details": "Template build edildi: HukukAI - Avukatlık & Hukuk Bürosu v1.0.24 → hukukai_template_v1.0.24.zip (259.04 KB)",
+      "timestamp": "2026-04-03T16:55:25.106Z"
+    },
+    {
+      "id": "1775230940400",
+      "action": "r2_upload",
+      "details": "R2'ye yüklendi (stable): hukukai_template_v1.0.23.zip (v1.0.23) → templates/hukukai_template_v1.0.23.zip, templates/hukukai_template_latest.zip, templates/hukukai_version_manifest.json | Silinen: v1.0.20",
+      "timestamp": "2026-04-03T15:42:20.400Z"
+    },
+    {
+      "id": "1775230915471",
+      "action": "template_built",
+      "details": "Template build edildi: HukukAI - Avukatlık & Hukuk Bürosu v1.0.23 → hukukai_template_v1.0.23.zip (259.04 KB)",
+      "timestamp": "2026-04-03T15:41:55.471Z"
+    },
+    {
+      "id": "1775229266084",
+      "action": "dev_test",
+      "details": "Dev test sitesi deploy edildi: abcdtestesfsefsef44 v1.0.22 → https://f74b33f9.abcdtestesfsefsef44.pages.dev",
+      "timestamp": "2026-04-03T15:14:26.084Z"
+    },
+    {
+      "id": "1775227781370",
+      "action": "r2_upload",
+      "details": "R2'ye yüklendi (stable): hukukai_template_v1.0.22.zip (v1.0.22) → templates/hukukai_template_v1.0.22.zip, templates/hukukai_template_latest.zip, templates/hukukai_version_manifest.json | Silinen: v1.0.19",
+      "timestamp": "2026-04-03T14:49:41.370Z"
+    },
+    {
+      "id": "1775227757581",
+      "action": "template_built",
+      "details": "Template build edildi: HukukAI - Avukatlık & Hukuk Bürosu v1.0.22 → hukukai_template_v1.0.22.zip (259.04 KB)",
+      "timestamp": "2026-04-03T14:49:17.581Z"
+    },
+    {
+      "id": "1775224203566",
+      "action": "r2_upload",
+      "details": "R2'ye yüklendi (stable): hukukai_template_v1.0.21.zip (v1.0.21) → templates/hukukai_template_v1.0.21.zip, templates/hukukai_template_latest.zip, templates/hukukai_version_manifest.json | Silinen: v1.0.18",
+      "timestamp": "2026-04-03T13:50:03.567Z"
+    },
+    {
+      "id": "1775224161132",
+      "action": "template_built",
+      "details": "Template build edildi: HukukAI - Avukatlık & Hukuk Bürosu v1.0.21 → hukukai_template_v1.0.21.zip (258.96 KB)",
+      "timestamp": "2026-04-03T13:49:21.132Z"
+    },
+    {
+      "id": "1775224053993",
+      "action": "support",
+      "details": "Destek talebi durumu güncellendi: TKT-RU13I2OA → open",
+      "timestamp": "2026-04-03T13:47:33.993Z"
+    },
+    {
+      "id": "1775224012394",
+      "action": "support",
+      "details": "Destek talebi durumu güncellendi: TKT-RU13I2OA → closed",
+      "timestamp": "2026-04-03T13:46:52.394Z"
+    },
+    {
+      "id": "1775224010142",
+      "action": "support",
+      "details": "Destek talebi yanıtlandı: TKT-RU13I2OA",
+      "timestamp": "2026-04-03T13:46:50.142Z"
+    },
+    {
+      "id": "1775218581754",
+      "action": "dev_test",
+      "details": "Dev test sitesi deploy edildi: dev-test-hukuk66 v1.0.20 → https://1703adaf.dev-test-hukuk66.pages.dev",
+      "timestamp": "2026-04-03T12:16:21.754Z"
+    },
+    {
+      "id": "1775218068343",
+      "action": "dev_test",
+      "details": "Dev test sitesi deploy edildi: dev-test-hukuk v1.0.20 → https://99ea9587.dev-test-hukuk.pages.dev",
+      "timestamp": "2026-04-03T12:07:48.343Z"
+    },
+    {
+      "id": "1775216503546",
+      "action": "r2_upload",
+      "details": "R2'ye yüklendi (stable): hukukai_template_v1.0.20.zip (v1.0.20) → templates/hukukai_template_v1.0.20.zip, templates/hukukai_template_latest.zip, templates/hukukai_version_manifest.json | Silinen: v1.0.17",
+      "timestamp": "2026-04-03T11:41:43.546Z"
+    },
+    {
+      "id": "1775216458639",
+      "action": "template_built",
+      "details": "Template build edildi: HukukAI - Avukatlık & Hukuk Bürosu v1.0.20 → hukukai_template_v1.0.20.zip (258.78 KB)",
+      "timestamp": "2026-04-03T11:40:58.639Z"
+    },
+    {
+      "id": "1775216390978",
+      "action": "update_service",
+      "details": "Rate limit sayaçları sıfırlandı",
+      "timestamp": "2026-04-03T11:39:50.978Z"
+    },
+    {
+      "id": "1775216357993",
+      "action": "update_service",
+      "details": "Dev → Stable yükseltildi: hukuk v1.0.19",
+      "timestamp": "2026-04-03T11:39:17.993Z"
+    },
+    {
+      "id": "1775216105139",
+      "action": "r2_upload",
+      "details": "R2'ye yüklendi (dev): hukukai_template_v1.0.19.zip (v1.0.19) → templates/hukukai_template_v1.0.19.zip, templates/hukukai_template_latest.zip, templates/hukukai_version_manifest_dev.json | Silinen: v1.0.16",
+      "timestamp": "2026-04-03T11:35:05.139Z"
+    },
+    {
+      "id": "1775216078406",
+      "action": "template_built",
+      "details": "Template build edildi: HukukAI - Avukatlık & Hukuk Bürosu v1.0.19 → hukukai_template_v1.0.19.zip (258.78 KB)",
+      "timestamp": "2026-04-03T11:34:38.406Z"
+    },
+    {
+      "id": "1775215702047",
+      "action": "update_service",
+      "details": "Rate limit sayaçları sıfırlandı",
+      "timestamp": "2026-04-03T11:28:22.047Z"
+    },
+    {
+      "id": "1775215668686",
+      "action": "update_service",
+      "details": "Dev → Stable yükseltildi: hukuk v1.0.17",
+      "timestamp": "2026-04-03T11:27:48.686Z"
+    },
+    {
+      "id": "1775215366156",
+      "action": "dev_test",
+      "details": "Dev test sitesi deploy edildi: dev-test-hukuk → https://a6bf7549.dev-test-hukuk.pages.dev",
+      "timestamp": "2026-04-03T11:22:46.156Z"
+    },
+    {
+      "id": "1775185796397",
+      "action": "r2_upload",
+      "details": "R2'ye yüklendi (stable): hukukai_template_v1.0.18.zip (v1.0.18) → templates/hukukai_template_v1.0.18.zip, templates/hukukai_template_latest.zip, templates/hukukai_version_manifest.json | Silinen: v1.0.15",
+      "timestamp": "2026-04-03T03:09:56.397Z"
+    },
+    {
+      "id": "1775185760249",
+      "action": "template_built",
+      "details": "Template build edildi: HukukAI - Avukatlık & Hukuk Bürosu v1.0.18 → hukukai_template_v1.0.18.zip (258.61 KB)",
+      "timestamp": "2026-04-03T03:09:20.249Z"
+    },
+    {
+      "id": "1775185480893",
+      "action": "r2_upload",
+      "details": "R2'ye yüklendi (dev): hukukai_template_v1.0.17.zip (v1.0.17) → templates/hukukai_template_v1.0.17.zip, templates/hukukai_template_latest.zip, templates/hukukai_version_manifest_dev.json | Silinen: v1.0.14",
+      "timestamp": "2026-04-03T03:04:40.893Z"
+    },
+    {
+      "id": "1775185454191",
+      "action": "template_built",
+      "details": "Template build edildi: HukukAI - Avukatlık & Hukuk Bürosu v1.0.17 → hukukai_template_v1.0.17.zip (258.61 KB)",
+      "timestamp": "2026-04-03T03:04:14.191Z"
+    },
+    {
+      "id": "1775184404624",
+      "action": "r2_upload",
+      "details": "R2'ye yüklendi: hukukai_template_v1.0.16.zip (v1.0.16) → templates/hukukai_template_v1.0.16.zip, templates/hukukai_template_latest.zip, templates/hukukai_version_manifest.json | Silinen: v1.0.13",
+      "timestamp": "2026-04-03T02:46:44.624Z"
+    },
+    {
+      "id": "1775184377708",
+      "action": "template_built",
+      "details": "Template build edildi: HukukAI - Avukatlık & Hukuk Bürosu v1.0.16 → hukukai_template_v1.0.16.zip (258.75 KB)",
+      "timestamp": "2026-04-03T02:46:17.708Z"
+    },
+    {
+      "id": "1775184233023",
+      "action": "update_service",
+      "details": "Worker logları temizlendi",
+      "timestamp": "2026-04-03T02:43:53.023Z"
+    },
+    {
+      "id": "1775184216232",
+      "action": "update_service",
+      "details": "Worker ayarları güncellendi",
+      "timestamp": "2026-04-03T02:43:36.232Z"
+    },
+    {
+      "id": "1775184213774",
+      "action": "update_service",
+      "details": "Rate limit sayaçları sıfırlandı",
+      "timestamp": "2026-04-03T02:43:33.774Z"
+    },
+    {
+      "id": "1775184165136",
+      "action": "update_service",
+      "details": "Worker ayarları güncellendi",
+      "timestamp": "2026-04-03T02:42:45.136Z"
+    },
+    {
+      "id": "1775183305758",
+      "action": "r2_upload",
+      "details": "R2'ye yüklendi: hukukai_template_v1.0.15.zip (v1.0.15) → templates/hukukai_template_v1.0.15.zip, templates/hukukai_template_latest.zip, templates/hukukai_version_manifest.json | Silinen: v1.0.12",
+      "timestamp": "2026-04-03T02:28:25.758Z"
+    },
+    {
+      "id": "1775183278534",
+      "action": "template_built",
+      "details": "Template build edildi: HukukAI - Avukatlık & Hukuk Bürosu v1.0.15 → hukukai_template_v1.0.15.zip (258.68 KB)",
+      "timestamp": "2026-04-03T02:27:58.534Z"
+    },
+    {
+      "id": "1775181275506",
+      "action": "r2_upload",
+      "details": "R2'ye yüklendi: hukukai_template_v1.0.14.zip (v1.0.14) → templates/hukukai_template_v1.0.14.zip, templates/hukukai_template_latest.zip, templates/hukukai_version_manifest.json | Silinen: v1.0.11",
+      "timestamp": "2026-04-03T01:54:35.506Z"
+    },
+    {
+      "id": "1775181231475",
+      "action": "template_built",
+      "details": "Template build edildi: HukukAI - Avukatlık & Hukuk Bürosu v1.0.14 → hukukai_template_v1.0.14.zip (259.02 KB)",
+      "timestamp": "2026-04-03T01:53:51.475Z"
+    },
+    {
+      "id": "1775180830343",
+      "action": "r2_upload",
+      "details": "R2'ye yüklendi: hukukai_template_v1.0.13.zip (v1.0.13) → templates/hukukai_template_v1.0.13.zip, templates/hukukai_template_latest.zip, templates/hukukai_version_manifest.json | Silinen: v1.0.10",
+      "timestamp": "2026-04-03T01:47:10.343Z"
+    },
+    {
+      "id": "1775180789695",
+      "action": "template_built",
+      "details": "Template build edildi: HukukAI - Avukatlık & Hukuk Bürosu v1.0.13 → hukukai_template_v1.0.13.zip (259.02 KB)",
+      "timestamp": "2026-04-03T01:46:29.695Z"
+    },
+    {
+      "id": "1775178970221",
+      "action": "support",
+      "details": "Destek talebi durumu güncellendi: TKT-9KJ5VPQK → closed",
+      "timestamp": "2026-04-03T01:16:10.221Z"
+    },
+    {
+      "id": "1775178969255",
+      "action": "support",
+      "details": "Destek talebi yanıtlandı: TKT-9KJ5VPQK",
+      "timestamp": "2026-04-03T01:16:09.255Z"
+    },
+    {
+      "id": "1775178833927",
+      "action": "r2_upload",
+      "details": "R2'ye yüklendi: hukukai_template_v1.0.12.zip (v1.0.12) → templates/hukukai_template_v1.0.12.zip, templates/hukukai_template_latest.zip, templates/hukukai_version_manifest.json | Silinen: v1.0.9",
+      "timestamp": "2026-04-03T01:13:53.927Z"
+    },
+    {
+      "id": "1775178750554",
+      "action": "template_built",
+      "details": "Template build edildi: HukukAI - Avukatlık & Hukuk Bürosu v1.0.12 → hukukai_template_v1.0.12.zip (257.86 KB)",
+      "timestamp": "2026-04-03T01:12:30.554Z"
+    },
+    {
+      "id": "1775178240155",
+      "action": "r2_upload",
+      "details": "R2'ye yüklendi: hukukai_template_v1.0.11.zip (v1.0.11) → templates/hukukai_template_v1.0.11.zip, templates/hukukai_template_latest.zip, templates/hukukai_version_manifest.json | Silinen: v1.0.8",
+      "timestamp": "2026-04-03T01:04:00.156Z"
+    },
+    {
+      "id": "1775178056092",
+      "action": "template_built",
+      "details": "Template build edildi: HukukAI - Avukatlık & Hukuk Bürosu v1.0.11 → hukukai_template_v1.0.11.zip (257.86 KB)",
+      "timestamp": "2026-04-03T01:00:56.092Z"
+    },
+    {
+      "id": "1775177952519",
+      "action": "r2_delete",
+      "details": "R2 dosyası silindi: hukukai-template.zip",
+      "timestamp": "2026-04-03T00:59:12.519Z"
+    }
+  ]
+}
