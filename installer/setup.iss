@@ -11,7 +11,7 @@
 ; ── Sabitler ──────────────────────────────────────────────────────────────
 #define AppName       "Cloudflare Site Kurulum Otomasyonu"
 #define AppShortName  "CloudflareProOtomasyon"
-#define AppVersion    "1.0.0"
+#define AppVersion    "1.0.36"
 #define AppPublisher  "Saffet Celik"
 #define AppURL        "https://saffetcelik.com.tr"
 #define AppExeName    "Cloudflare Site Kurulum Otomasyonu.exe"
