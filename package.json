@@ -1,7 +1,7 @@
 {
   "name": "cloudflare-site-kurulum-otomasyonu",
   "private": true,
-  "version": "1.0.34",
+  "version": "1.0.35",
   "type": "module",
   "main": "electron/main.mjs",
   "build": {
@@ -22,10 +22,7 @@
     "win": {
       "target": "dir",
       "icon": "installer/cloudflare-pages.ico",
-      "publisherName": "Saffet Celik",
-      "requestedExecutionLevel": "asInvoker",
-      "signAndEditExecutable": true,
-      "verifyUpdateCodeSignature": false
+      "requestedExecutionLevel": "asInvoker"
     },
     "mac": {
       "category": "public.app-category.developer-tools"
