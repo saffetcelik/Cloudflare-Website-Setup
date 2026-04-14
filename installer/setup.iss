@@ -1,7 +1,7 @@
 #define AppName       "Cloudflare Site Kurulum Otomasyonu"
 #define AppShortName  "CloudflareProOtomasyon"
-#define AppVersion    "1.0.38"
-#define AppPublisher  "Saffet Celik"
+#define AppVersion    "1.0.40"
+#define AppPublisher  "Saffet Çelik"
 #define AppURL        "https://saffetcelik.com.tr"
 #define AppExeName    "Cloudflare Site Kurulum Otomasyonu.exe"
 #define AppIcon       "cloudflare-pages.ico"
@@ -59,23 +59,61 @@ Root: HKCU; Subkey: "Software\{#AppShortName}"; ValueType: string; ValueName: "I
 Root: HKCU; Subkey: "Software\{#AppShortName}"; Flags: uninsdeletekey
 
 [Code]
-function GetSystemMetrics(nIndex: Integer): Integer;
-  external 'GetSystemMetrics@user32.dll stdcall';
+{ --- WINDOWS API MESAJ DONGUSU --- }
+type
+  TMsg = record
+    hwnd: Integer;
+    message: Cardinal;
+    wParam: Integer;
+    lParam: Integer;
+    time: DWORD;
+    pt_x: Integer;
+    pt_y: Integer;
+  end;
+
+function PeekMessage(var lpMsg: TMsg; hWnd: Integer; wMsgFilterMin, wMsgFilterMax, wRemoveMsg: Cardinal): Boolean; external 'PeekMessageA@user32.dll stdcall';
+function TranslateMessage(const lpMsg: TMsg): Boolean; external 'TranslateMessage@user32.dll stdcall';
+function DispatchMessage(const lpMsg: TMsg): Integer; external 'DispatchMessageA@user32.dll stdcall';
+function GetSystemMetrics(nIndex: Integer): Integer; external 'GetSystemMetrics@user32.dll stdcall';
 
 var
   InstallButton: TNewButton;
   StatusLabel: TNewStaticText;
-  ProgressBar: TNewProgressBar;
   PercentLabel: TNewStaticText;
   AppNameLabel: TNewStaticText;
   VersionLabel: TNewStaticText;
   PublisherLabel: TNewStaticText;
+  
+  AccentShape: TNewStaticText;
+  ProgBg: TNewStaticText;
+  ProgFill: TNewStaticText;
+
   DownloadPage: TDownloadWizardPage;
   FetchedDownloadURL : String;
   FetchedChecksum    : String;
   FetchedVersion     : String;
   InstallStarted: Boolean;
   InstallSuccess: Boolean;
+
+procedure ProcessMessages;
+var
+  Msg: TMsg;
+begin
+  while PeekMessage(Msg, 0, 0, 0, 1) do
+  begin
+    TranslateMessage(Msg);
+    DispatchMessage(Msg);
+  end;
+end;
+
+procedure HideStandardButtons;
+begin
+  WizardForm.NextButton.Visible := False;
+  WizardForm.BackButton.Visible := False;
+  WizardForm.CancelButton.Visible := True;
+  WizardForm.CancelButton.Left := -9999;
+  WizardForm.CancelButton.Top := -9999;
+end;
 
 function ExtractJsonStr(const JSON, Key: String): String;
 var
@@ -120,31 +158,101 @@ begin
   end;
 end;
 
-function ExtractZip(const ZipFile, DestDir: String): Boolean;
-var
-  Cmd: String;
-  Code: Integer;
-begin
-  Cmd := '-NoProfile -ExecutionPolicy Bypass -Command ' +
-         '"Expand-Archive -LiteralPath ''' + ZipFile + ''' ' +
-         '-DestinationPath ''' + DestDir + ''' -Force"';
-  Exec('powershell.exe', Cmd, '', SW_HIDE, ewWaitUntilTerminated, Code);
-  Result := (Code = 0);
-
-  Cmd := '-NoProfile -ExecutionPolicy Bypass -Command ' +
-         '"$sub = Get-ChildItem ''' + DestDir + ''' | Where-Object { $_.PSIsContainer }; ' +
-         'if ($sub.Count -eq 1) { ' +
-         'Get-ChildItem $sub[0].FullName | Move-Item -Destination ''' + DestDir + ''' -Force; ' +
-         'Remove-Item $sub[0].FullName -Recurse -Force }"';
-  Exec('powershell.exe', Cmd, '', SW_HIDE, ewWaitUntilTerminated, Code);
-end;
-
 procedure UpdateProgress(Pct: Integer; const Msg: String);
 begin
-  ProgressBar.Position := Pct;
+  if Pct < 0 then Pct := 0;
+  if Pct > 100 then Pct := 100;
+
+  ProgFill.Width := (Pct * ProgBg.Width) div 100;
   StatusLabel.Caption := Msg;
   PercentLabel.Caption := IntToStr(Pct) + '%';
   WizardForm.Refresh;
+end;
+
+function ExtractZipWithProgress(const ZipFile, DestDir: String): Boolean;
+var
+  ProgFile, ScriptFile, ScriptContent, Cmd, PctStr: String;
+  PctStrAnsi: AnsiString;
+  Code: Integer;
+  Pct: Integer;
+begin
+  Result := False;
+  ProgFile := ExpandConstant('{tmp}\prog.txt');
+  ScriptFile := ExpandConstant('{tmp}\extract.ps1');
+  
+  ScriptContent := 
+    '$zipPath = ''' + ZipFile + '''; ' + #13#10 +
+    '$dest = ''' + DestDir + '''; ' + #13#10 +
+    '$progFile = ''' + ProgFile + '''; ' + #13#10 +
+    'try { ' + #13#10 +
+    '  Add-Type -AssemblyName System.IO.Compression.FileSystem; ' + #13#10 +
+    '  $zip = [System.IO.Compression.ZipFile]::OpenRead($zipPath); ' + #13#10 +
+    '  $total = $zip.Entries.Count; ' + #13#10 +
+    '  $count = 0; $lastPct = -1; ' + #13#10 +
+    '  foreach ($entry in $zip.Entries) { ' + #13#10 +
+    '    $count++; ' + #13#10 +
+    '    $pct = [math]::Floor(($count / $total) * 100); ' + #13#10 +
+    '    if ($pct -ne $lastPct) { [IO.File]::WriteAllText($progFile, $pct.ToString()); $lastPct = $pct }; ' + #13#10 +
+    '    $destPath = [IO.Path]::Combine($dest, $entry.FullName); ' + #13#10 +
+    '    $dir = [IO.Path]::GetDirectoryName($destPath); ' + #13#10 +
+    '    if (-not [IO.Directory]::Exists($dir)) { [IO.Directory]::CreateDirectory($dir) | Out-Null }; ' + #13#10 +
+    '    if ($entry.Name -ne '''') { ' + #13#10 +
+    '      [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $destPath, $true); ' + #13#10 +
+    '    } ' + #13#10 +
+    '  }; ' + #13#10 +
+    '  $zip.Dispose(); ' + #13#10 +
+    '  [IO.File]::WriteAllText($progFile, ''DONE''); ' + #13#10 +
+    '} catch { ' + #13#10 +
+    '  [IO.File]::WriteAllText($progFile, ''ERROR''); ' + #13#10 +
+    '}';
+
+  SaveStringToFile(ScriptFile, ScriptContent, False);
+  SaveStringToFile(ProgFile, '0', False);
+
+  Cmd := '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + ScriptFile + '"';
+  
+  if Exec('powershell.exe', Cmd, '', SW_HIDE, ewNoWait, Code) then
+  begin
+    while True do
+    begin
+      Sleep(50);
+      ProcessMessages;
+      
+      if LoadStringFromFile(ProgFile, PctStrAnsi) then
+      begin
+        PctStr := Trim(String(PctStrAnsi));
+        if PctStr = 'DONE' then
+        begin
+          Result := True;
+          Break;
+        end
+        else if PctStr = 'ERROR' then
+        begin
+          Result := False;
+          Break;
+        end
+        else
+        begin
+          Pct := StrToIntDef(PctStr, -1);
+          if Pct >= 0 then
+            UpdateProgress(70 + (Pct * 20 div 100), 'Dosyalar çıkartılıyor...');
+        end;
+      end;
+    end;
+  end;
+  
+  DeleteFile(ScriptFile);
+  DeleteFile(ProgFile);
+  
+  if Result then
+  begin
+    Cmd := '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command ' +
+           '"$sub = Get-ChildItem ''' + DestDir + ''' | Where-Object { $_.PSIsContainer }; ' +
+           'if ($sub.Count -eq 1) { ' +
+           'Get-ChildItem $sub[0].FullName | Move-Item -Destination ''' + DestDir + ''' -Force; ' +
+           'Remove-Item $sub[0].FullName -Recurse -Force }"';
+    Exec('powershell.exe', Cmd, '', SW_HIDE, ewWaitUntilTerminated, Code);
+  end;
 end;
 
 procedure CreateShortcut(const LinkPath, TargetPath, WorkingDir, IconPath: String);
@@ -154,10 +262,7 @@ var
   Code: Integer;
   ActualIconPath: String;
 begin
-  if FileExists(IconPath) then
-    ActualIconPath := IconPath
-  else
-    ActualIconPath := TargetPath;
+  if FileExists(IconPath) then ActualIconPath := IconPath else ActualIconPath := TargetPath;
 
   ScriptFile := ExpandConstant('{tmp}\create-shortcut.ps1');
   ScriptContent := '$W = New-Object -ComObject WScript.Shell' + #13#10 +
@@ -167,7 +272,7 @@ begin
     '$S.IconLocation = "' + ActualIconPath + ',0"' + #13#10 +
     '$S.Save()';
   SaveStringToFile(ScriptFile, ScriptContent, False);
-  Exec('powershell.exe', '-NoProfile -ExecutionPolicy Bypass -File "' + ScriptFile + '"', '', SW_HIDE, ewWaitUntilTerminated, Code);
+  Exec('powershell.exe', '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + ScriptFile + '"', '', SW_HIDE, ewWaitUntilTerminated, Code);
   DeleteFile(ScriptFile);
 end;
 
@@ -178,15 +283,17 @@ var
   Msg: String;
 begin
   Result := True;
+  ProcessMessages;
+  
   if ProgressMax > 0 then
   begin
     Pct := 15 + (Progress * 55 div ProgressMax);
     DownloadedMB := Progress / (1024.0 * 1024.0);
     TotalMB := ProgressMax / (1024.0 * 1024.0);
-    Msg := Format('Indiriliyor: %.1f / %.1f MB', [DownloadedMB, TotalMB]);
+    Msg := Format('İndiriliyor: %.1f / %.1f MB', [DownloadedMB, TotalMB]);
   end else begin
     Pct := 15;
-    Msg := 'Indiriliyor...';
+    Msg := 'İndiriliyor...';
   end;
   UpdateProgress(Pct, Msg);
 end;
@@ -197,87 +304,76 @@ var
   ResultCode: Integer;
 begin
   InstallStarted := True;
-  InstallButton.Enabled := False;
-  InstallButton.Caption := 'Kuruluyor...';
-  ProgressBar.Visible := True;
+  
+  InstallButton.Visible := False;
+  ProgBg.Visible := True;
+  ProgFill.Visible := True;
+  StatusLabel.Visible := True;
   PercentLabel.Visible := True;
 
-  UpdateProgress(5, 'Sunucuya baglaniyor...');
+  UpdateProgress(5, 'Sunucuya bağlanıyor...');
   if not FetchManifest then
   begin
-    StatusLabel.Caption := 'Sunucuya baglanilamadi! Internet baglantinizi kontrol edin.';
-    StatusLabel.Font.Color := $0000FF;
-    InstallButton.Caption := 'Tekrar Dene';
-    InstallButton.Enabled := True;
+    StatusLabel.Caption := 'Bağlantı hatası. Lütfen internetinizi kontrol edip tekrar açın.';
+    StatusLabel.Font.Color := $000000FF; 
     InstallStarted := False;
     Exit;
   end;
 
-  UpdateProgress(15, 'Indiriliyor: v' + FetchedVersion + '...');
+  UpdateProgress(15, 'İndiriliyor: v' + FetchedVersion + '...');
   DownloadPage.Clear;
   DownloadPage.Add(FetchedDownloadURL, 'CloudflareProOtomasyon.zip', FetchedChecksum);
 
   try
     DownloadPage.Download;
   except
-    StatusLabel.Caption := 'Indirme basarisiz: ' + GetExceptionMessage;
-    StatusLabel.Font.Color := $0000FF;
-    InstallButton.Caption := 'Tekrar Dene';
-    InstallButton.Enabled := True;
+    StatusLabel.Caption := 'İndirme başarısız: ' + GetExceptionMessage;
+    StatusLabel.Font.Color := $000000FF;
     InstallStarted := False;
     Exit;
   end;
 
-  UpdateProgress(70, 'Dosyalar cikartiliyor... (Lutfen bekleyin, pencere donabilir)');
-
   ZipPath    := ExpandConstant('{tmp}\CloudflareProOtomasyon.zip');
   InstallDir := ExpandConstant('{localappdata}\{#AppShortName}');
 
-  if not DirExists(InstallDir) then
-    CreateDir(InstallDir);
+  if not DirExists(InstallDir) then CreateDir(InstallDir);
 
-  if not ExtractZip(ZipPath, InstallDir) then
+  UpdateProgress(70, 'Dosyalar çıkartılıyor...');
+  if not ExtractZipWithProgress(ZipPath, InstallDir) then
   begin
-    StatusLabel.Caption := 'Dosyalar acilamadi. Lutfen tekrar deneyin.';
-    StatusLabel.Font.Color := $0000FF;
-    InstallButton.Caption := 'Tekrar Dene';
-    InstallButton.Enabled := True;
+    StatusLabel.Caption := 'Dosyalar açılamadı. Lütfen güvenlik duvarınızı kontrol edin.';
+    StatusLabel.Font.Color := $000000FF;
     InstallStarted := False;
     DeleteFile(ZipPath);
     Exit;
   end;
 
   DeleteFile(ZipPath);
-  UpdateProgress(90, 'Kurulum tamamlaniyor...');
+  UpdateProgress(90, 'Kısayollar oluşturuluyor...');
 
   RegWriteStringValue(HKCU, 'Software\{#AppShortName}', 'Version', FetchedVersion);
   RegWriteStringValue(HKCU, 'Software\{#AppShortName}', 'InstallPath', InstallDir);
 
   CreateShortcut(ExpandConstant('{userdesktop}\{#AppName}.lnk'), InstallDir + '\{#AppExeName}', InstallDir, InstallDir + '\{#AppIcon}');
-  if not DirExists(ExpandConstant('{userstartmenu}')) then
-    ForceDirectories(ExpandConstant('{userstartmenu}'));
+  if not DirExists(ExpandConstant('{userstartmenu}')) then ForceDirectories(ExpandConstant('{userstartmenu}'));
   CreateShortcut(ExpandConstant('{userstartmenu}\{#AppName}.lnk'), InstallDir + '\{#AppExeName}', InstallDir, InstallDir + '\{#AppIcon}');
 
-  UpdateProgress(100, 'Kurulum basariyla tamamlandi! Uygulama baslatiliyor...');
-  StatusLabel.Font.Color := $007700;
-  
+  UpdateProgress(100, 'Kurulum tamamlandı! Uygulama açılıyor...');
+  StatusLabel.Font.Color := $0045A728; 
   InstallSuccess := True;
   InstallStarted := False;
-
-  InstallButton.Caption := 'Kapat';
-  InstallButton.Enabled := True;
+  WizardForm.Refresh;
 
   if FileExists(InstallDir + '\{#AppExeName}') then
     ShellExec('open', InstallDir + '\{#AppExeName}', '', '', SW_SHOWNORMAL, ewNoWait, ResultCode);
+
+  Sleep(1500);
+  ProcessMessages;
+  WizardForm.Close;
 end;
 
 procedure InstallButtonClick(Sender: TObject);
 begin
-  if InstallSuccess then
-  begin
-    WizardForm.Close;
-    Exit;
-  end;
   RunInstallation;
 end;
 
@@ -288,127 +384,129 @@ begin
   InstallStarted := False;
   InstallSuccess := False;
 
-  WizardForm.ClientWidth := ScaleX(430);
-  WizardForm.ClientHeight := ScaleY(340);
+  WizardForm.ClientWidth := ScaleX(480);
+  WizardForm.ClientHeight := ScaleY(260);
   WizardForm.Left := (GetSystemMetrics(0) - WizardForm.Width) div 2;
   WizardForm.Top := (GetSystemMetrics(1) - WizardForm.Height) div 2;
 
+  WizardForm.Color := clWhite;
   WizardForm.OuterNotebook.Hide;
   WizardForm.InnerNotebook.Hide;
   WizardForm.Bevel.Hide;
-
-  WizardForm.NextButton.Visible := False;
-  WizardForm.BackButton.Visible := False;
-  WizardForm.CancelButton.Visible := False;
+  HideStandardButtons;
 
   PageWidth := WizardForm.ClientWidth;
+
+  AccentShape := TNewStaticText.Create(WizardForm);
+  AccentShape.Parent := WizardForm;
+  AccentShape.Left := 0;
+  AccentShape.Top := 0;
+  AccentShape.Width := PageWidth;
+  AccentShape.Height := ScaleY(4);
+  AccentShape.AutoSize := False;
+  AccentShape.Caption := '';
+  AccentShape.Color := $002080F3; 
 
   AppNameLabel := TNewStaticText.Create(WizardForm);
   AppNameLabel.Parent := WizardForm;
   AppNameLabel.Caption := '{#AppName}';
-  AppNameLabel.Font.Size := 14;
+  AppNameLabel.Font.Size := 16;
   AppNameLabel.Font.Style := [fsBold];
-  AppNameLabel.Font.Color := $333333;
+  AppNameLabel.Font.Color := $00222222; 
   AppNameLabel.AutoSize := True;
-  AppNameLabel.Left := (PageWidth div 2) - (ScaleX(200));
+  AppNameLabel.Left := (PageWidth div 2) - (ScaleX(190)); 
   AppNameLabel.Top := ScaleY(50);
 
   VersionLabel := TNewStaticText.Create(WizardForm);
   VersionLabel.Parent := WizardForm;
   VersionLabel.Caption := 'v{#AppVersion}';
   VersionLabel.Font.Size := 9;
-  VersionLabel.Font.Color := $888888;
+  VersionLabel.Font.Color := $00888888;
   VersionLabel.AutoSize := True;
-  VersionLabel.Top := ScaleY(80);
   VersionLabel.Left := AppNameLabel.Left;
+  VersionLabel.Top := ScaleY(85);
 
   PublisherLabel := TNewStaticText.Create(WizardForm);
   PublisherLabel.Parent := WizardForm;
   PublisherLabel.Caption := '{#AppPublisher} - saffetcelik.com.tr';
   PublisherLabel.Font.Size := 8;
-  PublisherLabel.Font.Color := $AAAAAA;
+  PublisherLabel.Font.Color := $00AAAAAA;
   PublisherLabel.AutoSize := True;
-  PublisherLabel.Top := ScaleY(100);
   PublisherLabel.Left := AppNameLabel.Left;
+  PublisherLabel.Top := ScaleY(105);
 
-  InstallButton := TNewButton.Create(WizardForm);
-  InstallButton.Parent := WizardForm;
-  InstallButton.Caption := 'Kurulumu Baslat';
-  InstallButton.Width := ScaleX(280);
-  InstallButton.Height := ScaleY(44);
-  InstallButton.Left := (PageWidth - InstallButton.Width) div 2;
-  InstallButton.Top := ScaleY(140);
-  InstallButton.Font.Size := 11;
-  InstallButton.Font.Style := [fsBold];
-  InstallButton.OnClick := @InstallButtonClick;
-  InstallButton.Default := True;
+  ProgBg := TNewStaticText.Create(WizardForm);
+  ProgBg.Parent := WizardForm;
+  ProgBg.Left := ScaleX(40);
+  ProgBg.Width := PageWidth - ScaleX(80);
+  ProgBg.Top := ScaleY(180);
+  ProgBg.Height := ScaleY(4); 
+  ProgBg.AutoSize := False;
+  ProgBg.Caption := '';
+  ProgBg.Color := $00EEEEEE;
+  ProgBg.Visible := False;
 
-  ProgressBar := TNewProgressBar.Create(WizardForm);
-  ProgressBar.Parent := WizardForm;
-  ProgressBar.Left := (PageWidth - ScaleX(340)) div 2;
-  ProgressBar.Top := ScaleY(205);
-  ProgressBar.Width := ScaleX(340);
-  ProgressBar.Height := ScaleY(20);
-  ProgressBar.Min := 0;
-  ProgressBar.Max := 100;
-  ProgressBar.Position := 0;
-  ProgressBar.Visible := False;
+  ProgFill := TNewStaticText.Create(WizardForm);
+  ProgFill.Parent := WizardForm;
+  ProgFill.Left := ProgBg.Left;
+  ProgFill.Width := 0;
+  ProgFill.Top := ProgBg.Top;
+  ProgFill.Height := ProgBg.Height;
+  ProgFill.AutoSize := False;
+  ProgFill.Caption := '';
+  ProgFill.Color := $002080F3; 
+  ProgFill.Visible := False;
+
+  StatusLabel := TNewStaticText.Create(WizardForm);
+  StatusLabel.Parent := WizardForm;
+  StatusLabel.Caption := 'Başlatılıyor...';
+  StatusLabel.Font.Size := 9;
+  StatusLabel.Font.Color := $00666666;
+  StatusLabel.AutoSize := False;
+  StatusLabel.Width := ScaleX(300);
+  StatusLabel.Height := ScaleY(20);
+  StatusLabel.Left := ProgBg.Left;
+  StatusLabel.Top := ProgBg.Top - ScaleY(22);
+  StatusLabel.Alignment := taLeftJustify;
+  StatusLabel.Visible := False;
 
   PercentLabel := TNewStaticText.Create(WizardForm);
   PercentLabel.Parent := WizardForm;
   PercentLabel.Caption := '0%';
   PercentLabel.Font.Size := 9;
-  PercentLabel.Font.Color := $555555;
   PercentLabel.Font.Style := [fsBold];
-  PercentLabel.AutoSize := True;
-  PercentLabel.Top := ScaleY(230);
-  PercentLabel.Left := (PageWidth - ScaleX(30)) div 2;
+  PercentLabel.Font.Color := $002080F3; 
+  PercentLabel.AutoSize := False;
+  PercentLabel.Width := ScaleX(50);
+  PercentLabel.Height := ScaleY(20);
+  PercentLabel.Left := ProgBg.Left + ProgBg.Width - PercentLabel.Width;
+  PercentLabel.Top := StatusLabel.Top;
+  PercentLabel.Alignment := taRightJustify;
   PercentLabel.Visible := False;
 
-  StatusLabel := TNewStaticText.Create(WizardForm);
-  StatusLabel.Parent := WizardForm;
-  StatusLabel.Caption := 'Kuruluma baslamak icin butona tiklayin.';
-  StatusLabel.Font.Size := 9;
-  StatusLabel.Font.Color := $666666;
-  StatusLabel.AutoSize := False;
-  StatusLabel.Width := ScaleX(380);
-  StatusLabel.Height := ScaleY(40);
-  StatusLabel.Left := (PageWidth - StatusLabel.Width) div 2;
-  StatusLabel.Top := ScaleY(260);
-  StatusLabel.Alignment := taCenter;
-  StatusLabel.WordWrap := True;
+  InstallButton := TNewButton.Create(WizardForm);
+  InstallButton.Parent := WizardForm;
+  InstallButton.Caption := 'Hemen Kur';
+  InstallButton.Width := ScaleX(200);
+  InstallButton.Height := ScaleY(40);
+  InstallButton.Left := (PageWidth - InstallButton.Width) div 2;
+  InstallButton.Top := ScaleY(160);
+  InstallButton.Font.Size := 10;
+  InstallButton.Font.Style := [fsBold];
+  InstallButton.OnClick := @InstallButtonClick;
+  InstallButton.Default := True;
 
-  DownloadPage := CreateDownloadPage(
-    'Indiriliyor',
-    'Uygulama dosyalari sunucudan guvenli sekilde indiriliyor...',
-    @OnDownloadProgress
-  );
+  DownloadPage := CreateDownloadPage('','', @OnDownloadProgress);
 end;
 
 procedure CurPageChanged(CurPageID: Integer);
 begin
-  WizardForm.NextButton.Visible := False;
-  WizardForm.BackButton.Visible := False;
-  WizardForm.CancelButton.Visible := False;
-end;
-
-function NextButtonClick(CurPageID: Integer): Boolean;
-begin
-  Result := True;
-end;
-
-procedure CurStepChanged(CurStep: TSetupStep);
-begin
+  HideStandardButtons;
 end;
 
 procedure CancelButtonClick(CurPageID: Integer; var Cancel, Confirm: Boolean);
 begin
-  if InstallSuccess then
-  begin
-    Cancel := True;
-    Confirm := False;
-  end
-  else if InstallStarted then
+  if InstallStarted and not InstallSuccess then
   begin
     Cancel := False;
     Confirm := False;
@@ -416,7 +514,7 @@ begin
   else
   begin
     Cancel := True;
-    Confirm := True;
+    Confirm := False; 
   end;
 end;
 

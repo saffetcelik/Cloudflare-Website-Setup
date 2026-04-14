@@ -692,29 +692,41 @@ ipcMain.handle('wrangler-login', async () => {
         }
       });
       
-      // Log output in real-time
-      if (wranglerProcess.stdout) {
-        wranglerProcess.stdout.on('data', (data) => {
-          console.log('Wrangler:', data.toString());
-          
-          // Check if login was successful (OAuth callback completed)
-          // NOTE: Only trigger on actual success message, NOT on 'OAuth' in URL
-          if (data.toString().includes('Successfully logged in') || 
-              data.toString().includes('Wrangler is now authenticated')) {
-            // Bring window to front
-            if (mainWindow) {
-              if (mainWindow.isMinimized()) {
-                mainWindow.restore();
-              }
-              mainWindow.show();
-              mainWindow.focus();
-              mainWindow.setAlwaysOnTop(true);
-              mainWindow.setAlwaysOnTop(false);
-              // Renderer'a onay sinyali gönder - UI anında güncellenir
-              mainWindow.webContents.send('wrangler-login-approved');
-            }
+      // Wrangler çıktısından OAuth URL'yi yakala ve tarayıcıda aç
+      const handleOutput = (data: Buffer | string) => {
+        const text = data.toString();
+        console.log('Wrangler:', text);
+        debugLog(`[wrangler-login] output: ${text.trim()}`);
+
+        // OAuth URL'yi yakala — wrangler "https://dash.cloudflare.com/" içeren URL basar
+        const urlMatch = text.match(/(https:\/\/dash\.cloudflare\.com\S+)/);
+        if (urlMatch) {
+          const oauthUrl = urlMatch[1];
+          debugLog(`[wrangler-login] OAuth URL yakalandı, shell.openExternal ile açılıyor: ${oauthUrl}`);
+          shell.openExternal(oauthUrl).catch(err => {
+            debugLog(`[wrangler-login] shell.openExternal hatası: ${err.message}`);
+          });
+        }
+
+        // Login başarı kontrolü
+        if (text.includes('Successfully logged in') || 
+            text.includes('Wrangler is now authenticated')) {
+          if (mainWindow) {
+            if (mainWindow.isMinimized()) mainWindow.restore();
+            mainWindow.show();
+            mainWindow.focus();
+            mainWindow.setAlwaysOnTop(true);
+            mainWindow.setAlwaysOnTop(false);
+            mainWindow.webContents.send('wrangler-login-approved');
           }
-        });
+        }
+      };
+
+      if (wranglerProcess.stdout) {
+        wranglerProcess.stdout.on('data', handleOutput);
+      }
+      if (wranglerProcess.stderr) {
+        wranglerProcess.stderr.on('data', handleOutput);
       }
     });
   };
